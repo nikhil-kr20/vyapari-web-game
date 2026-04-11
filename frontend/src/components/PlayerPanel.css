@@ -2,119 +2,119 @@
 .player-panel {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 14px;
+  gap: 12px;
+  padding: 8px 24px 8px 16px; /* Extra right padding for bevel */
   background: #fff;
-  border: 2px solid #e0e0e0;
+  border: none;
   position: relative;
-  min-width: 0;
-  width: 40%;
-  flex: 0 0 auto;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  width: calc(50% - 6px);
+  min-width: 130px;
+  max-width: 280px;
+  flex: 0 1 auto;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+  
+  /* The "Trapezoid" Beveled Look - default for left side */
+  clip-path: polygon(0% 0%, 85% 0%, 100% 100%, 0% 100%);
+  background: linear-gradient(to right, #ffffff 85%, #f0f0f0 100%);
+}
+
+/* Mirrored shape for players on the right side */
+.hud-top .player-panel:nth-child(even),
+.hud-bottom .player-panel:nth-child(even) {
+  padding: 8px 16px 8px 24px;
+  clip-path: polygon(15% 0%, 100% 0%, 100% 100%, 0% 100%);
+  background: linear-gradient(to left, #ffffff 85%, #f0f0f0 100%);
 }
 
 .player-panel--active {
-  border-color: var(--pcolor, #0d6661);
-  box-shadow: 0 4px 16px rgba(13, 102, 97, 0.15);
+  background: linear-gradient(to right, #0d6661 85%, #0a524d 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+  transform: translateY(-4px);
+  z-index: 10;
 }
 
+.hud-top .player-panel--active:nth-child(even),
+.hud-bottom .player-panel--active:nth-child(even) {
+  background: linear-gradient(to left, #0d6661 85%, #0a524d 100%) !important;
+}
+
+.player-panel--active .pp-name { color: #fff; }
+.player-panel--active .pp-balance { color: #9febe3; }
+
 .player-panel--bankrupt {
-  opacity: 0.45;
-  filter: grayscale(0.7);
+  opacity: 0.4;
+  filter: grayscale(1);
 }
 
 .pp-avatar {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 
-.pp-info {
+.pp-body {
   min-width: 0;
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .pp-name {
-  font-family: 'Be Vietnam Pro', sans-serif;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
   color: #2d2f2f;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.pp-bot-badge,
-.pp-status {
-  font-size: 0.65rem;
+  margin-bottom: -2px;
 }
 
 .pp-balance {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 800;
+  font-family: 'Inter', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 900;
   color: var(--pcolor, #0d6661);
 }
 
-.pp-jail-card {
-  font-size: 0.7rem;
-  background: #fff8e1;
-  padding: 2px 5px;
-  border-radius: 6px;
-  border: 1px solid #ffd54f;
-  flex-shrink: 0;
-}
-
-.pp-active-dot {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--pcolor, #0d6661);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
 .pp-dice-container {
-  transform: scale(0.65);
-  transform-origin: right center;
-  margin-left: auto;
-  margin-right: -10px;
+  flex-shrink: 0;
+  transform: scale(0.65) translateX(10px);
 }
 
-@keyframes pulse {
-
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  50% {
-    transform: scale(1.5);
-    opacity: 0.5;
-  }
+.hud-top .player-panel:nth-child(even) .pp-dice-container,
+.hud-bottom .player-panel:nth-child(even) .pp-dice-container {
+  transform: scale(0.65) translateX(-10px);
 }
 
 @media (max-width: 600px) {
-  .pp-balance {
-    font-size: 0.75rem;
+  .player-panel {
+    padding: 6px 16px 6px 10px;
+    width: calc(50% - 6px);
+    clip-path: polygon(0% 0%, 90% 0%, 100% 100%, 0% 100%);
+  }
+  
+  .hud-top .player-panel:nth-child(even),
+  .hud-bottom .player-panel:nth-child(even) {
+     padding: 6px 10px 6px 16px;
+     clip-path: polygon(10% 0%, 100% 0%, 100% 100%, 0% 100%);
   }
 
-  .pp-name {
-    font-size: 0.65rem;
-  }
-
-  .pp-avatar {
-    font-size: 1.1rem;
-  }
-
+  .pp-avatar  { font-size: 1.4rem; }
+  .pp-name    { font-size: 0.7rem; }
+  .pp-balance { font-size: 1rem; }
+  
   .pp-dice-container {
-    transform: scale(0.5);
-    margin-right: -14px;
+    transform: scale(0.4) translateX(12px) !important;
+  }
+
+  .hud-top .player-panel:nth-child(even) .pp-dice-container,
+  .hud-bottom .player-panel:nth-child(even) .pp-dice-container {
+    transform: scale(0.4) translateX(-12px) !important;
   }
 }
+
+
+

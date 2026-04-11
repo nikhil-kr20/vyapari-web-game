@@ -23,7 +23,8 @@ export default function PlayerPanel({ player, isActive }) {
       style={{ '--pcolor': player.color }}
     >
       <div className="pp-avatar">{player.avatar}</div>
-      <div className="pp-info">
+      
+      <div className="pp-body">
         <div className="pp-name">
           {player.name}
           {player.isBot && <span className="pp-bot-badge">🤖</span>}
@@ -31,13 +32,17 @@ export default function PlayerPanel({ player, isActive }) {
           {player.isBankrupt && <span className="pp-status">💀</span>}
         </div>
         <div className="pp-balance">₹{player.balance.toLocaleString('en-IN')}</div>
+        
+        {player.jailFreeCards > 0 && (
+          <div className="pp-jail-card" title="Get Out of Jail Free">🎫×{player.jailFreeCards}</div>
+        )}
       </div>
 
       {showDice && (
         <div 
           className="pp-dice-container" 
           onClick={handleDiceClick}
-          style={{ cursor: canRoll ? 'pointer' : 'default', transition: 'transform 0.2s', transform: canRoll ? 'scale(0.7)' : 'scale(0.65)' }}
+          style={{ cursor: canRoll ? 'pointer' : 'default' }}
           title={canRoll ? "Click to Roll!" : ""}
         >
           <Dice 
@@ -48,10 +53,8 @@ export default function PlayerPanel({ player, isActive }) {
         </div>
       )}
 
-      {player.jailFreeCards > 0 && (
-        <div className="pp-jail-card" title="Get Out of Jail Free">🎫×{player.jailFreeCards}</div>
-      )}
       {isActive && !showDice && <div className="pp-active-dot" />}
     </div>
   );
 }
+
