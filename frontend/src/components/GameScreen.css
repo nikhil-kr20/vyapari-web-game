@@ -4,10 +4,40 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 16px;
+  padding: 60px 16px 16px 16px;
   background: linear-gradient(135deg, #e0f4ef 0%, #f0f1f1 100%);
   gap: 20px;
+  position: relative;
 }
+
+
+.quit-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #ddd;
+  color: #888;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.quit-btn:hover {
+  background: #ff5252;
+  color: white;
+  border-color: #ff5252;
+  transform: scale(1.1);
+}
+
 
 .hud-top,
 .hud-bottom {

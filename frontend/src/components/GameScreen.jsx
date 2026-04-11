@@ -9,9 +9,10 @@ import LogPanel from './LogPanel.jsx';
 import './GameScreen.css';
 
 export default function GameScreen() {
-  const { state } = useGame();
+  const { state, quitGame } = useGame();
 
   if (state.phase === 'GAME_OVER') {
+    // ... winner handling
     const winner = state.players.find(p => p.id === state.winner);
     return (
       <div className="game-over-screen">
@@ -20,8 +21,8 @@ export default function GameScreen() {
           <div className="winner-avatar">{winner?.avatar}</div>
           <h2>{winner?.name} WINS!</h2>
           <p>Total wealth: ₹{winner?.balance.toLocaleString('en-IN')}</p>
-          <button onClick={() => window.location.reload()} className="play-again-btn">
-            Play Again
+          <button onClick={quitGame} className="play-again-btn">
+            Back to Setup
           </button>
         </div>
       </div>
@@ -34,6 +35,10 @@ export default function GameScreen() {
 
   return (
     <div className="game-screen">
+      <button className="quit-btn" onClick={quitGame} title="Quit Game">
+        ✖
+      </button>
+
       {/* Top HUD - Player List (Evens like Cpu 1, Cpu 2) */}
       <div className="hud-top">
         {topPlayers.map(p => (
@@ -67,3 +72,4 @@ export default function GameScreen() {
     </div>
   );
 }
+

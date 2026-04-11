@@ -92,6 +92,9 @@ function gameReducer(state, action) {
     case 'ADD_LOG':
       return { ...state, log: [...state.log, action.message] };
 
+    case 'QUIT_GAME':
+      return null;
+
     default:
       return state;
   }
@@ -144,6 +147,7 @@ export function GameProvider({ children }) {
 
   const setupGame       = useCallback((players) => dispatch({ type: 'SETUP_GAME', players }), []);
   const doStartGame     = useCallback(() => dispatch({ type: 'START_GAME' }), []);
+  const quitGame        = useCallback(() => dispatch({ type: 'QUIT_GAME' }), []);
   
   const doRoll          = useCallback(() => {
     dispatch({ type: 'SET_ROLLING', payload: true });
@@ -183,6 +187,7 @@ export function GameProvider({ children }) {
       state,
       setupGame,
       doStartGame,
+      quitGame,
       doRoll,
       doBuy,
       doPass,
@@ -197,6 +202,8 @@ export function GameProvider({ children }) {
     </GameContext.Provider>
   );
 }
+
+
 
 // ── Hook ───────────────────────────────────────────────────────────────────────
 export function useGame() {
