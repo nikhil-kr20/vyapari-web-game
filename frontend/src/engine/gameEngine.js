@@ -170,18 +170,9 @@ export function resolveLanding(state) {
   let log      = [...newState.log];
 
   log.push(`${player.name} landed on ${TILES[player.position].name}`);
-
-  // Doubles allow another roll (if not in jail now)
-  const updatedPlayer = newState.players.find(p => p.id === player.id);
-  if (dice.isDouble && !updatedPlayer.inJail && newState.phase !== 'END_TURN') {
-    if (newState.phase === 'ROLLING' || newState.phase === 'END_TURN') {
-        // We stay in ROLLING or transition back to allow another roll
-        return { ...newState, log: [...log, `${player.name} gets another roll for a double!`], phase: 'ROLLING' };
-    }
-  }
-
   return { ...newState, log };
 }
+
 
 
 /**

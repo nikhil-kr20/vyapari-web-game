@@ -71,21 +71,27 @@ export default function Tokens() {
         return (
           <div
             key={player.id}
-            className="token"
+            className={`token ${state.currentPlayerIdx === pIdx ? 'token--active' : ''}`}
             style={{
               left,
               top,
               transform: `translate(calc(-50% + ${offset.dx}px), calc(-50% + ${offset.dy}px))`,
-              borderColor: player.color,
+              '--pcolor': player.color,
             }}
-            title={player.name}
           >
-            <span className="token-avatar">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill={player.color} stroke="#000" strokeWidth="1.5">
-                <path d="M12 2C10.3 2 9 3.3 9 5c0 1.1.6 2.1 1.5 2.6L10 11H8v2h8v-2h-0.5L13.5 7.6C14.4 7.1 15 6.1 15 5c0-1.7-1.3-3-3-3zm-4 13v2h8v-2H8zm-2 3v3h12v-3H6z" />
+            <div className="pawn-container">
+              <svg width="34" height="42" viewBox="0 0 24 30" style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.3))' }}>
+                <path 
+                  d="M12 2a4 4 0 0 0-4 4c0 1.5.8 2.8 2 3.5v2.5s-4 1-4 6v2h12v-2s0-5-4-6v-2.5c1.2-.7 2-2 2-3.5a4 4 0 0 0-4-4z" 
+                  fill={player.color} 
+                  stroke="#000" 
+                  strokeWidth="0.5"
+                />
+                <circle cx="12" cy="6" r="1.5" fill="rgba(255,255,255,0.3)" /> {/* Highlight */}
               </svg>
-            </span>
+            </div>
           </div>
+
         );
       })}
     </>
