@@ -1,0 +1,88 @@
+/* ── Tile.css ────────────────────────────────────────────────────────────── */
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #c8c8c8;
+  background: #fff;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  cursor: default;
+  transition: background 0.15s;
+  gap: 1px;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+/* ── Rotations by edge ───────────────────────────────────────────────────── */
+.tile--bottom { flex-direction: column-reverse; }
+.tile--top    { flex-direction: column; }
+.tile--left   { flex-direction: row-reverse; writing-mode: vertical-lr; transform: rotate(180deg); }
+.tile--right  { flex-direction: row; writing-mode: vertical-lr; }
+.tile--corner { font-size: 2rem; border: 2px solid #555; background: #f0f4f0; }
+
+/* ── Color band ──────────────────────────────────────────────────────────── */
+.tile-color-band {
+  width: 100%;
+  height: 12px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+.tile--bottom .tile-color-band { border-bottom: none; border-top: 1px solid rgba(0,0,0,0.1); }
+
+/* ── Text ────────────────────────────────────────────────────────────────── */
+.tile-name {
+  font-size: 0.45rem;
+  font-weight: 700;
+  text-align: center;
+  color: #2d2f2f;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile-price {
+  font-size: 0.4rem;
+  color: #5a5c5c;
+  text-align: center;
+}
+
+.tile-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.tile-houses {
+  font-size: 0.5rem;
+  line-height: 1;
+}
+
+/* ── Owner strip (bottom strip showing owner color) ──────────────────────── */
+.tile-owner-strip {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  opacity: 0.85;
+}
+
+/* ── Corner tiles ─────────────────────────────────────────────────────────── */
+.tile--corner .tile-name {
+  font-size: 0.5rem;
+  font-weight: 800;
+  writing-mode: horizontal-tb;
+  transform: none;
+  color: #1a1a1a;
+}
+
+@media (max-width: 600px) {
+  .tile-name  { font-size: 0.3rem; }
+  .tile-price { font-size: 0.28rem; }
+  .tile-icon  { font-size: 0.7rem; }
+  .tile-color-band { height: 7px; }
+}

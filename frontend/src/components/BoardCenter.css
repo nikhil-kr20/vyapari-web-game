@@ -1,0 +1,45 @@
+/* ── BoardCenter.css ─────────────────────────────────────────────────────── */
+.board-center {
+  grid-row: 2 / 11;
+  grid-column: 2 / 11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e0f4ef 0%, #f0f9ff 60%, #fce4f3 100%);
+  border-radius: 2px;
+}
+
+.board-center-logo {
+  text-align: center;
+}
+
+.bc-rupee {
+  font-size: 3.5rem;
+  color: #0d6661;
+  font-weight: 900;
+  line-height: 1;
+  display: block;
+}
+
+.bc-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: #0d6661;
+}
+
+.bc-sub {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 0.55rem;
+  color: #888;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+@media (max-width: 600px) {
+  .bc-rupee  { font-size: 2rem; }
+  .bc-title  { font-size: 1rem; letter-spacing: 3px; }
+  .bc-sub    { font-size: 0.4rem; }
+}

@@ -1,0 +1,26 @@
+/* ── Tokens.css ──────────────────────────────────────────────────────────── */
+.token {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  transition: left 0.5s cubic-bezier(0.4,0,0.2,1), top 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+
+.token-avatar {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+@media (max-width: 600px) {
+  .token { width: 20px; height: 20px; border-width: 2px; }
+  .token-avatar { font-size: 0.7rem; }
+}

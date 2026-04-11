@@ -1,0 +1,97 @@
+/* ── PlayerPanel.css ─────────────────────────────────────────────────────── */
+.player-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  position: relative;
+  min-width: 0;
+  flex: 1;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.player-panel--active {
+  border-color: var(--pcolor, #0d6661);
+  box-shadow: 0 4px 16px rgba(13,102,97,0.15);
+}
+
+.player-panel--bankrupt {
+  opacity: 0.45;
+  filter: grayscale(0.7);
+}
+
+.pp-avatar {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.pp-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.pp-name {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #2d2f2f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pp-bot-badge, .pp-status {
+  font-size: 0.65rem;
+}
+
+.pp-balance {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--pcolor, #0d6661);
+}
+
+.pp-jail-card {
+  font-size: 0.7rem;
+  background: #fff8e1;
+  padding: 2px 5px;
+  border-radius: 6px;
+  border: 1px solid #ffd54f;
+  flex-shrink: 0;
+}
+
+.pp-active-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pcolor, #0d6661);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.pp-dice-container {
+  transform: scale(0.65);
+  transform-origin: right center;
+  margin-left: auto;
+  margin-right: -10px;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.5); opacity: 0.5; }
+}
+
+@media (max-width: 600px) {
+  .pp-balance { font-size: 0.75rem; }
+  .pp-name    { font-size: 0.65rem; }
+  .pp-avatar  { font-size: 1.1rem; }
+  .pp-dice-container { transform: scale(0.5); margin-right: -14px; }
+}
