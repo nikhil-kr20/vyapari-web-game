@@ -6,15 +6,16 @@ import './Tile.css';
 
 const HOUSE_DOTS = ['', '🏠', '🏠🏠', '🏠🏠🏠', '🏠🏠🏠🏠', '🏨'];
 
-export default function Tile({ tile, edge, style, ownerColor, houses }) {
+export default function Tile({ tile, edge, style, ownerColor, houses, onClick }) {
   const isCorner = edge === 'corner';
   const group    = tile.group ? COLOR_GROUPS[tile.group] : null;
 
   return (
     <div
       className={`tile tile--${edge}`}
-      style={style}
+      style={{ ...style, cursor: 'pointer' }}
       title={tile.name}
+      onClick={onClick}
     >
       {/* Color band for properties */}
       {group && tile.type === 'property' && (

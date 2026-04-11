@@ -1,11 +1,13 @@
 /* ──────────────────────────────────────────────────────────────────────────
    Board.jsx  –  The 40-tile game board rendered as a CSS Grid
    ────────────────────────────────────────────────────────────────────────── */
+import { useState } from 'react';
 import TILES, { COLOR_GROUPS } from '../engine/boardData.js';
 import { useGame } from '../context/GameContext.jsx';
 import Tile from './Tile.jsx';
 import Tokens from './Tokens.jsx';
 import BoardCenter from './BoardCenter.jsx';
+import TileModal from './TileModal.jsx';
 import './Board.css';
 
 // Pre-compute grid positions for each tile (0-39)
@@ -47,6 +49,9 @@ function getEdge(tileId) {
 
 export default function Board() {
   const { state } = useGame();
+  const [selectedTileId, setSelectedTileId] = useState(null);
+
+  const selectedTile = selectedTileId !== null ? TILES[selectedTileId] : null;
 
   return (
     <div className="board-wrapper">
@@ -66,6 +71,7 @@ export default function Board() {
               style={gridStyle}
               ownerColor={ownerPlayer?.color}
               houses={houses}
+              onClick={() => setSelectedTileId(tile.id)}
             />
           );
         })}
@@ -76,6 +82,13 @@ export default function Board() {
         {/* Player tokens overlaid on board */}
         {state && <Tokens />}
       </div>
+
+      {selectedTile && (
+        <TileModal 
+          tile={selectedTile} 
+          onClose={() => setSelectedTileId(null)} 
+        />
+      )}
     </div>
   );
 }

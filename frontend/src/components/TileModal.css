@@ -1,0 +1,148 @@
+/* ── TileModal.css ───────────────────────────────────────────────────────── */
+.tm-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.tm-card {
+  width: 320px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  overflow: hidden;
+  position: relative;
+  animation: slideIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.tm-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.1);
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.tm-header {
+  height: 100px;
+  background: var(--group-color, #333);
+  padding: 20px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border-bottom: 8px solid rgba(0,0,0,0.1);
+}
+
+.tm-group-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.tm-name {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.tm-body {
+  padding: 20px;
+}
+
+.tm-rent-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.tm-rent-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.95rem;
+  color: #444;
+}
+
+.tm-rent-row.hotel {
+  color: #d32f2f;
+  font-weight: 800;
+  border-bottom: 2px solid #ffcdd2;
+}
+
+.tm-desc {
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+  margin-bottom: 12px;
+}
+
+.tm-footer {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 2px dashed #eee;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tm-info-bit {
+  flex: 1;
+  min-width: 80px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tm-info-bit label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #999;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.tm-info-bit span {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #2d2f2f;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(20px) scale(0.9); opacity: 0; }
+  to { transform: translateY(0) scale(1.0); opacity: 1; }
+}
+
+@media (max-width: 600px) {
+  .tm-card {
+    width: 280px;
+  }
+  .tm-name { font-size: 1.25rem; }
+  .tm-header { height: 80px; }
+}

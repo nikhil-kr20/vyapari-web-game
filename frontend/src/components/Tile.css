@@ -20,8 +20,8 @@
 /* ── Rotations by edge ───────────────────────────────────────────────────── */
 .tile--bottom { flex-direction: column; writing-mode: vertical-rl; }
 .tile--top    { flex-direction: column-reverse; writing-mode: vertical-rl; }
-.tile--left   { flex-direction: row-reverse; writing-mode: horizontal-tb; transform: none; }
-.tile--right  { flex-direction: row; writing-mode: horizontal-tb; transform: none; }
+.tile--left   { flex-direction: row-reverse; writing-mode: horizontal-tb}
+.tile--right  { flex-direction: row; writing-mode: horizontal-tb }
 .tile--corner { font-size: 2rem; border: 2px solid #555; background: #f0f4f0; }
 
 /* ── Color band ──────────────────────────────────────────────────────────── */
@@ -30,38 +30,39 @@
 }
 .tile--bottom .tile-color-band, .tile--top .tile-color-band {
   width: 100%;
-  height: 12px;
+  height: 5px;
 }
 .tile--left .tile-color-band, .tile--right .tile-color-band {
-  width: 12px;
+  width: 5px;
   height: 100%;
 }
 
 /* ── Text ────────────────────────────────────────────────────────────────── */
 .tile-name {
-  font-size: 0.45rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-align: center;
   color: #2d2f2f;
-  line-height: 1.2;
+  line-height: 1.1;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .tile-price {
-  font-size: 0.4rem;
+  font-size: 0.55rem;
   color: #5a5c5c;
   text-align: center;
+  font-weight: 600;
 }
 
 .tile-icon {
-  font-size: 1rem;
+  font-size: 1.1rem;
   line-height: 1;
 }
 
 .tile-houses {
-  font-size: 0.5rem;
+  font-size: 0.6rem;
   line-height: 1;
 }
 
@@ -77,16 +78,18 @@
 
 /* ── Corner tiles ─────────────────────────────────────────────────────────── */
 .tile--corner .tile-name {
-  font-size: 0.5rem;
-  font-weight: 800;
+  font-size: 0.75rem;
+  font-weight: 900;
   writing-mode: horizontal-tb;
   transform: none;
   color: #1a1a1a;
+  text-transform: uppercase;
 }
 
 @media (max-width: 600px) {
-  .tile-name  { font-size: 0.3rem; }
-  .tile-price { font-size: 0.28rem; }
-  .tile-icon  { font-size: 0.7rem; }
-  .tile-color-band { height: 7px; }
+  .tile-name  { font-size: 0.5rem; }
+  .tile-price { font-size: 0.45rem; }
+  .tile-icon  { font-size: 0.8rem; }
+  .tile-color-band { height: 5px; }
 }
+
