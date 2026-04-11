@@ -1,64 +1,118 @@
 /* ── Tile.css ────────────────────────────────────────────────────────────── */
+:root {
+  --tile-band-size: 10px; /* Modern, thin but clearly visible band */
+  --tile-bg: #ffffff;
+  --tile-border: #e2e8f0;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Be Vietnam Pro', sans-serif;
+}
 
 .tile {
   position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
-  border: 1px solid #c8c8c8;
-  background: #fff;
-  font-family: 'Be Vietnam Pro', sans-serif;
-  cursor: default;
-  transition: background 0.15s;
-  gap: 1px;
-  padding: 2px;
+  background: var(--tile-bg);
+  border: 1px solid var(--tile-border);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
+  padding: 0;
+  user-select: none;
 }
 
-/* ── Rotations by edge ───────────────────────────────────────────────────── */
-.tile--bottom { flex-direction: column; writing-mode: vertical-rl; }
-.tile--top    { flex-direction: column-reverse; writing-mode: vertical-rl; }
-.tile--left   { flex-direction: row-reverse; writing-mode: horizontal-tb}
-.tile--right  { flex-direction: row; writing-mode: horizontal-tb }
-.tile--corner { font-size: 2rem; border: 2px solid #555; background: #f0f4f0; }
+.tile:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  z-index: 5;
+}
 
-/* ── Color band ──────────────────────────────────────────────────────────── */
+/* ── Edge Orientation Logic ─────────────────────────────────────────────── */
+
+.tile--bottom { flex-direction: column; }
+.tile--top    { flex-direction: column-reverse; }
+.tile--left   { flex-direction: row-reverse; }
+.tile--right  { flex-direction: row; }
+
+.tile--corner {
+  flex-direction: column;
+  background: #fdfdfd;
+}
+
+/* ── Color Band Styling ────────────────────────────────────────────────── */
 .tile-color-band {
   flex-shrink: 0;
+  background: #CBD5E1; /* Fallback color */
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.1);
+  border: 1px solid rgba(0,0,0,0.05);
 }
-.tile--bottom .tile-color-band, .tile--top .tile-color-band {
+
+.tile--bottom .tile-color-band,
+.tile--top .tile-color-band {
   width: 100%;
-  height: 5px;
+  height: var(--tile-band-size);
 }
-.tile--left .tile-color-band, .tile--right .tile-color-band {
-  width: 5px;
+
+.tile--left .tile-color-band,
+.tile--right .tile-color-band {
+  width: var(--tile-band-size);
   height: 100%;
 }
 
-/* ── Text ────────────────────────────────────────────────────────────────── */
+/* ── Content Area ──────────────────────────────────────────────────────── */
+.tile-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 4px; /* More breathable padding */
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  min-height: 0;
+  gap: 2px;
+}
+
+/* Orientation of content based on edge */
+.tile--bottom .tile-content, 
+.tile--top .tile-content {
+  writing-mode: vertical-rl;
+}
+
+.tile--left .tile-content,
+.tile--right .tile-content {
+  writing-mode: horizontal-tb;
+}
+
+/* ── Typography Redesign (Premium) ──────────────────────────────────────── */
+
 .tile-name {
-  font-size: 0.65rem;
-  font-weight: 700;
+  font-family: var(--font-heading);
+  font-size: 0.58rem;
+  font-weight: 800;
   text-align: center;
-  color: #2d2f2f;
-  line-height: 1.1;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-main);
+  line-height: 1.25;
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  word-wrap: break-word;
 }
 
 .tile-price {
-  font-size: 0.55rem;
-  color: #5a5c5c;
+  font-family: var(--font-body);
+  font-size: 0.5rem;
+  font-weight: 700;
+  color: var(--text-muted);
   text-align: center;
-  font-weight: 600;
+  margin-top: auto; /* Push price to bottom */
 }
 
 .tile-icon {
   font-size: 1.1rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2px 0;
 }
 
 .tile-houses {
@@ -66,30 +120,37 @@
   line-height: 1;
 }
 
-/* ── Owner strip (bottom strip showing owner color) ──────────────────────── */
+/* ── Owner Indicator ───────────────────────────────────────────────────── */
 .tile-owner-strip {
   position: absolute;
+  width: 100%;
+  height: 4px;
   bottom: 0;
   left: 0;
-  right: 0;
-  height: 4px;
-  opacity: 0.85;
+  opacity: 1;
+  box-shadow: 0 -1px 4px rgba(0,0,0,0.05);
 }
 
-/* ── Corner tiles ─────────────────────────────────────────────────────────── */
-.tile--corner .tile-name {
-  font-size: 0.75rem;
-  font-weight: 900;
+/* ── Corner Adjustments ──────────────────────────────────────────────────── */
+
+.tile--corner .tile-content {
   writing-mode: horizontal-tb;
-  transform: none;
-  color: #1a1a1a;
-  text-transform: uppercase;
+}
+
+.tile--corner .tile-name {
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.tile--corner .tile-icon {
+  font-size: 1.6rem;
+  margin-bottom: 4px;
 }
 
 @media (max-width: 600px) {
-  .tile-name  { font-size: 0.5rem; }
-  .tile-price { font-size: 0.45rem; }
-  .tile-icon  { font-size: 0.8rem; }
-  .tile-color-band { height: 5px; }
+  :root { --tile-band-size: 8px; }
+  .tile-name { font-size: 0.45rem; line-height: 1.1; }
+  .tile-price { font-size: 0.38rem; }
+  .tile-icon { font-size: 0.8rem; }
 }
-
