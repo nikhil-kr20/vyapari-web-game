@@ -60,9 +60,9 @@ export default function GameScreen() {
             isActive={state.players.findIndex(x => x.id === p.id) === state.currentPlayerIdx}
           />
         ))}
-        <div className="side-panel">
+        {/* <div className="side-panel">
           <LogPanel />
-        </div>
+        </div> */}
       </div>
     </div>
   );
