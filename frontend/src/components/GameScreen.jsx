@@ -28,15 +28,19 @@ export default function GameScreen() {
     );
   }
 
+  // Split players into top and bottom HUDs by odd/even index
+  const topPlayers = state.players.filter((_, i) => i % 2 !== 0);
+  const bottomPlayers = state.players.filter((_, i) => i % 2 === 0);
+
   return (
     <div className="game-screen">
-      {/* Top HUD - Player List */}
+      {/* Top HUD - Player List (Evens like Cpu 1, Cpu 2) */}
       <div className="hud-top">
-        {state.players.map((p, idx) => (
+        {topPlayers.map(p => (
           <PlayerPanel
             key={p.id}
             player={p}
-            isActive={idx === state.currentPlayerIdx}
+            isActive={state.players.findIndex(x => x.id === p.id) === state.currentPlayerIdx}
           />
         ))}
       </div>
@@ -45,10 +49,18 @@ export default function GameScreen() {
         <div className="board-container">
           <Board />
         </div>
+      </div>
 
+      {/* Bottom HUD - Player List (Odds like You, Cpu 3) */}
+      <div className="hud-bottom">
+        {bottomPlayers.map(p => (
+          <PlayerPanel
+            key={p.id}
+            player={p}
+            isActive={state.players.findIndex(x => x.id === p.id) === state.currentPlayerIdx}
+          />
+        ))}
         <div className="side-panel">
-          <ActionPanel />
-          <div className="side-panel-spacer" />
           <LogPanel />
         </div>
       </div>

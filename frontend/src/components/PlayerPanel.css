@@ -9,13 +9,14 @@
   border: 2px solid #e0e0e0;
   position: relative;
   min-width: 0;
-  flex: 1;
+  width: 35%;
+  flex: 0 0 auto;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .player-panel--active {
   border-color: var(--pcolor, #0d6661);
-  box-shadow: 0 4px 16px rgba(13,102,97,0.15);
+  box-shadow: 0 4px 16px rgba(13, 102, 97, 0.15);
 }
 
 .player-panel--bankrupt {
@@ -46,7 +47,8 @@
   gap: 4px;
 }
 
-.pp-bot-badge, .pp-status {
+.pp-bot-badge,
+.pp-status {
   font-size: 0.65rem;
 }
 
@@ -85,13 +87,34 @@
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50%       { transform: scale(1.5); opacity: 0.5; }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 0.5;
+  }
 }
 
 @media (max-width: 600px) {
-  .pp-balance { font-size: 0.75rem; }
-  .pp-name    { font-size: 0.65rem; }
-  .pp-avatar  { font-size: 1.1rem; }
-  .pp-dice-container { transform: scale(0.5); margin-right: -14px; }
+  .pp-balance {
+    font-size: 0.75rem;
+  }
+
+  .pp-name {
+    font-size: 0.65rem;
+  }
+
+  .pp-avatar {
+    font-size: 1.1rem;
+  }
+
+  .pp-dice-container {
+    transform: scale(0.5);
+    margin-right: -14px;
+  }
 }

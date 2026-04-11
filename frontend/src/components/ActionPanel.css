@@ -13,6 +13,17 @@
   max-width: 320px;
 }
 
+.ap--center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  background: #ffffffee;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.25);
+  border: 2px solid #0d6661;
+}
+
 /* Banner */
 .ap-player-banner {
   display: flex;

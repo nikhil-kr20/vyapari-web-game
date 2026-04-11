@@ -24,25 +24,28 @@ export default function Tile({ tile, edge, style, ownerColor, houses }) {
         />
       )}
 
-      {/* Icon for corners, chance, chest, tax, railway, utility */}
-      {(tile.icon || !group) && (
-        <span className="tile-icon">{tile.icon || (tile.type === 'railway' ? '🚂' : tile.type === 'utility' ? '⚡' : '?')}</span>
-      )}
+      <div className="tile-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, minWidth: 0, minHeight: 0 }}>
+      
+        {/* Icon for corners, chance, chest, tax, railway, utility */}
+        {(tile.icon || !group) && (
+          <span className="tile-icon">{tile.icon || (tile.type === 'railway' ? '🚂' : tile.type === 'utility' ? '⚡' : '?')}</span>
+        )}
 
-      {/* Name */}
-      <span className="tile-name">{tile.name}</span>
+        {/* Name */}
+        <span className="tile-name">{tile.name}</span>
 
-      {/* Price */}
-      {tile.price && (
-        <span className="tile-price">₹{tile.price}</span>
-      )}
+        {/* Price */}
+        {tile.price && (
+          <span className="tile-price">₹{tile.price}</span>
+        )}
 
-      {/* Houses / Hotel */}
-      {houses > 0 && (
-        <span className="tile-houses" style={{ color: ownerColor || '#0d6661' }}>
-          {HOUSE_DOTS[Math.min(houses, 5)]}
-        </span>
-      )}
+        {/* Houses / Hotel */}
+        {houses > 0 && (
+          <span className="tile-houses" style={{ color: ownerColor || '#0d6661' }}>
+            {HOUSE_DOTS[Math.min(houses, 5)]}
+          </span>
+        )}
+      </div>
 
       {/* Owner color indicator strip */}
       {ownerColor && tile.type !== 'corner' && (

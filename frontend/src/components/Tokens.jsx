@@ -80,7 +80,11 @@ export default function Tokens() {
             }}
             title={player.name}
           >
-            <span className="token-avatar">{player.avatar}</span>
+            <span className="token-avatar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill={player.color} stroke="#000" strokeWidth="1.5">
+                <path d="M12 2C10.3 2 9 3.3 9 5c0 1.1.6 2.1 1.5 2.6L10 11H8v2h8v-2h-0.5L13.5 7.6C14.4 7.1 15 6.1 15 5c0-1.7-1.3-3-3-3zm-4 13v2h8v-2H8zm-2 3v3h12v-3H6z" />
+              </svg>
+            </span>
           </div>
         );
       })}

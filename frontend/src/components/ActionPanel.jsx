@@ -16,27 +16,15 @@ export default function ActionPanel() {
   const phase     = state.phase;
   const rolling   = state.isRolling;
 
-  return (
-    <div className="action-panel">
-      {/* Current Player Banner */}
-      <div className="ap-player-banner" style={{ '--pcolor': player.color }}>
-        <span className="ap-avatar">{player.avatar}</span>
-        <div>
-          <div className="ap-name">{player.name}'s Turn</div>
-          <div className="ap-balance">₹{player.balance.toLocaleString('en-IN')}</div>
-        </div>
-        {inJail && <span className="ap-jail-badge">⛓️ In Jail</span>}
-        {state.diceResult?.isDouble && <span className="ap-double-badge">🎯 DOUBLE!</span>}
-      </div>
+  const hasOptions = (inJail && phase === 'ROLLING') || (phase === 'BUYING' && state.pendingAction) || (phase === 'END_TURN');
+  if (!hasOptions) return null;
 
-      {/* Buttons */}
+  return (
+    <div className="action-panel ap--center">
       <div className="ap-buttons">
         {/* Jail Options */}
         {inJail && phase === 'ROLLING' && (
           <>
-            <button className="ap-btn ap-btn--primary" onClick={doRoll} disabled={rolling}>
-              {rolling ? '🎲 Rolling...' : '🎲 Roll for Double'}
-            </button>
             <button className="ap-btn ap-btn--secondary" onClick={doPayJailFine}>
               💰 Pay ₹500 Bail
             </button>
@@ -45,14 +33,8 @@ export default function ActionPanel() {
                 🎫 Use Free Card
               </button>
             )}
+            <div style={{fontSize: '0.8rem', color: '#555', textAlign: 'center'}}>Hint: Click your Dice to roll for a double!</div>
           </>
-        )}
-
-        {/* Normal Roll */}
-        {!inJail && phase === 'ROLLING' && (
-          <button className="ap-btn ap-btn--primary ap-btn--roll" onClick={doRoll} disabled={rolling}>
-            {rolling ? '🎲 Rolling...' : '🎲 ROLL DICE'}
-          </button>
         )}
 
         {/* Buy/Pass */}

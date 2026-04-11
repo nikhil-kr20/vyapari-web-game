@@ -18,7 +18,7 @@ export default function SetupScreen() {
   ]);
 
   function addPlayer() {
-    if (players.length >= 6) return;
+    if (players.length >= 4) return;
     const idx = players.length;
     setPlayers([...players, {
       name: `Player ${idx + 1}`,
@@ -63,7 +63,7 @@ export default function SetupScreen() {
 
         {/* Players */}
         <div className="setup-players">
-          <h2 className="setup-section-title">Players ({players.length}/6)</h2>
+          <h2 className="setup-section-title">Players ({players.length}/4)</h2>
           {players.map((p, idx) => (
             <div key={idx} className="setup-player-row" style={{ '--pcolor': p.color }}>
               <span className="setup-avatar">{p.avatar}</span>
@@ -86,7 +86,7 @@ export default function SetupScreen() {
             </div>
           ))}
 
-          {players.length < 6 && (
+          {players.length < 4 && (
             <button className="setup-add-btn" onClick={addPlayer}>
               + Add Player
             </button>

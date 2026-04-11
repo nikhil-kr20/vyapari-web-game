@@ -18,20 +18,24 @@
 }
 
 /* ── Rotations by edge ───────────────────────────────────────────────────── */
-.tile--bottom { flex-direction: column-reverse; }
-.tile--top    { flex-direction: column; }
-.tile--left   { flex-direction: row-reverse; writing-mode: vertical-lr; transform: rotate(180deg); }
-.tile--right  { flex-direction: row; writing-mode: vertical-lr; }
+.tile--bottom { flex-direction: column; writing-mode: vertical-rl; }
+.tile--top    { flex-direction: column-reverse; writing-mode: vertical-rl; }
+.tile--left   { flex-direction: row-reverse; writing-mode: horizontal-tb; transform: none; }
+.tile--right  { flex-direction: row; writing-mode: horizontal-tb; transform: none; }
 .tile--corner { font-size: 2rem; border: 2px solid #555; background: #f0f4f0; }
 
 /* ── Color band ──────────────────────────────────────────────────────────── */
 .tile-color-band {
+  flex-shrink: 0;
+}
+.tile--bottom .tile-color-band, .tile--top .tile-color-band {
   width: 100%;
   height: 12px;
-  flex-shrink: 0;
-  border-bottom: 1px solid rgba(0,0,0,0.1);
 }
-.tile--bottom .tile-color-band { border-bottom: none; border-top: 1px solid rgba(0,0,0,0.1); }
+.tile--left .tile-color-band, .tile--right .tile-color-band {
+  width: 12px;
+  height: 100%;
+}
 
 /* ── Text ────────────────────────────────────────────────────────────────── */
 .tile-name {
