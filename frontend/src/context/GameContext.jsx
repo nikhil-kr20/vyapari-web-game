@@ -2,11 +2,13 @@
 // GameContext.jsx  –  Global React state using useReducer + Context
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { createContext, useContext, useReducer, useCallback } from 'react';
+import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import {
   buildInitialState,
   startGame,
-  performRoll,
+  prepareMove,
+  executeStep,
+  resolveLanding,
   buyProperty,
   passProperty,
   buildHouse,
@@ -37,8 +39,18 @@ function gameReducer(state, action) {
       return { ...state, isRolling: action.payload };
 
     case 'ROLL_DICE': {
-      let next = performRoll(state);
-      // If landed → bot turn, run bot logic
+      let next = prepareMove(state);
+      next = runBotIfNeeded(next);
+      return next;
+    }
+
+    case 'MOVE_ONE_STEP': {
+      let next = executeStep(state);
+      return next;
+    }
+
+    case 'RESOLVE_LANDING': {
+      let next = resolveLanding(state);
       next = runBotIfNeeded(next);
       return next;
     }
@@ -88,13 +100,16 @@ function gameReducer(state, action) {
 /** After any state change, if the current player is a bot, execute their turn automatically */
 function runBotIfNeeded(state) {
   const current = state.players?.[state.currentPlayerIdx];
-  if (!current || !current.isBot || state.phase === 'GAME_OVER' || state.phase === 'SETUP') {
+  if (!current || !current.isBot || state.phase === 'GAME_OVER' || state.phase === 'SETUP' || state.phase === 'MOVING') {
     return state;
   }
 
   // Bot is in ROLLING – auto-roll
   if (state.phase === 'ROLLING') {
-    let next = performRoll(state);
+    let next = prepareMove(state);
+    if (next.phase === 'MOVING') return next; // Wait for steps
+    
+    // If we didn't go to MOVING (e.g. still in jail), try next action
     next = decideBotAction(next);
     if (next.phase === 'END_TURN') {
       next = endTurn(next);
@@ -132,10 +147,11 @@ export function GameProvider({ children }) {
   
   const doRoll          = useCallback(() => {
     dispatch({ type: 'SET_ROLLING', payload: true });
+    // Keep it rolling for a bit visually
     setTimeout(() => {
-      dispatch({ type: 'ROLL_DICE' });
       dispatch({ type: 'SET_ROLLING', payload: false });
-    }, 600);
+      dispatch({ type: 'ROLL_DICE' });
+    }, 800);
   }, []);
 
   const doBuy           = useCallback(() => dispatch({ type: 'BUY_PROPERTY' }), []);
@@ -146,6 +162,21 @@ export function GameProvider({ children }) {
   const doPayJailFine   = useCallback(() => dispatch({ type: 'PAY_JAIL_FINE' }), []);
   const doUseJailCard   = useCallback(() => dispatch({ type: 'USE_JAIL_FREE_CARD' }), []);
   const doEndTurn       = useCallback(() => dispatch({ type: 'END_TURN' }), []);
+
+  // ── Animation Loop for Incremental Moving ────────────────────────────────────
+  useEffect(() => {
+    if (!state || state.phase !== 'MOVING') return;
+
+    const timer = setTimeout(() => {
+      if (state.stepsRemaining > 0) {
+        dispatch({ type: 'MOVE_ONE_STEP' });
+      } else {
+        dispatch({ type: 'RESOLVE_LANDING' });
+      }
+    }, 280); // Speed of each step
+
+    return () => clearTimeout(timer);
+  }, [state?.phase, state?.stepsRemaining, state?.currentPlayerIdx]);
 
   return (
     <GameContext.Provider value={{
@@ -173,3 +204,4 @@ export function useGame() {
   if (!ctx) throw new Error('useGame must be used inside <GameProvider>');
   return ctx;
 }
+

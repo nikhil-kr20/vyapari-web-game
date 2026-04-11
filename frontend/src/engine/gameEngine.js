@@ -62,8 +62,9 @@ export function buildInitialState(playerDefs) {
   return {
     players,
     currentPlayerIdx: 0,
-    phase: 'SETUP',              // SETUP | ROLLING | LANDED | BUYING | BANKRUPT | GAME_OVER
+    phase: 'SETUP',              // SETUP | ROLLING | MOVING | LANDED | BUYING | BANKRUPT | GAME_OVER
     diceResult: null,            // { d1, d2, total, isDouble }
+    stepsRemaining: 0,
     properties: {},              // { tileId: { ownerId, houses } }
     chanceCards: shuffle(CHANCE_CARDS),
     chestCards:  shuffle(CHEST_CARDS),
@@ -91,13 +92,13 @@ export function startGame(state) {
 }
 
 /**
- * performRoll – executes a dice roll for the current player
- * handles doubles logic and jail
+ * prepareMove – rolls dice and handles jail/doubles logic.
+ * Prepares the state for incremental stepping.
  */
-export function performRoll(state) {
+export function prepareMove(state) {
   const player = state.players[state.currentPlayerIdx];
   const dice   = rollDice();
-  let newState  = { ...state, diceResult: dice };
+  let newState  = { ...state, diceResult: dice, stepsRemaining: dice.total };
   let log       = [...state.log];
 
   // ── Jail handling ──────────────────────────────────────────────────────────
@@ -108,14 +109,13 @@ export function performRoll(state) {
     } else {
       const jailTurns = player.jailTurns + 1;
       if (jailTurns >= 3) {
-        // Must pay bail after 3 turns
         log.push(`${player.name} must pay ₹500 bail after 3 turns in jail.`);
         newState = deductMoney(newState, player.id, 500, log);
         newState = updatePlayer(newState, player.id, { inJail: false, jailTurns: 0 });
       } else {
         log.push(`${player.name} is still in Jail (turn ${jailTurns}/3). (${dice.d1}+${dice.d2})`);
         newState = updatePlayer(newState, player.id, { jailTurns });
-        return { ...newState, phase: 'END_TURN', log };
+        return { ...newState, phase: 'END_TURN', log, stepsRemaining: 0 };
       }
     }
   }
@@ -126,38 +126,63 @@ export function performRoll(state) {
     log.push(`${player.name} rolled 3 doubles in a row – Go to Jail!`);
     newState = updatePlayer(newState, player.id, { doublesCount: 0 });
     newState = sendToJail(newState, player.id, log);
-    return { ...newState, log, phase: 'END_TURN', diceResult: dice };
+    return { ...newState, log, phase: 'END_TURN', diceResult: dice, stepsRemaining: 0 };
   }
 
   newState = updatePlayer(newState, player.id, { doublesCount });
+  log.push(`${player.name} rolled ${dice.d1}+${dice.d2}=${dice.total}. Moving...`);
+  
+  return { ...newState, log, phase: 'MOVING' };
+}
 
-  // ── Move the player ────────────────────────────────────────────────────────
-  const currentPos   = state.players[state.currentPlayerIdx].position;
-  const newPos       = (currentPos + dice.total) % 40;
-  const passedGO     = newPos < currentPos;
+/**
+ * executeStep – moves the current player one tile forward.
+ * Handles passing GO rewards.
+ */
+export function executeStep(state) {
+  const player = state.players[state.currentPlayerIdx];
+  if (state.stepsRemaining <= 0) return state;
 
-  if (passedGO) {
+  const currentPos = player.position;
+  const newPos     = (currentPos + 1) % 40;
+  let newState     = updatePlayer(state, player.id, { position: newPos });
+  let log          = [...newState.log];
+
+  if (newPos === 0) {
     log.push(`${player.name} passed GO and collected ₹${GO_REWARD}!`);
     newState = addMoney(newState, player.id, GO_REWARD);
   }
 
-  newState = updatePlayer(newState, player.id, { position: newPos });
-  log.push(`${player.name} rolled ${dice.d1}+${dice.d2}=${dice.total} → ${TILES[newPos].name}`);
+  return {
+    ...newState,
+    log,
+    stepsRemaining: state.stepsRemaining - 1
+  };
+}
 
-  // ── Evaluate tile ──────────────────────────────────────────────────────────
-  newState = { ...newState, log };
-  newState = evaluateLanding(newState, player.id, newPos);
+/**
+ * resolveLanding – evaluates the tile where the player actually landed.
+ */
+export function resolveLanding(state) {
+  const player = state.players[state.currentPlayerIdx];
+  const dice   = state.diceResult;
+  let newState = evaluateLanding(state, player.id, player.position);
+  let log      = [...newState.log];
+
+  log.push(`${player.name} landed on ${TILES[player.position].name}`);
 
   // Doubles allow another roll (if not in jail now)
   const updatedPlayer = newState.players.find(p => p.id === player.id);
   if (dice.isDouble && !updatedPlayer.inJail && newState.phase !== 'END_TURN') {
-    if (newState.phase === 'ROLLING') {
-      return { ...newState, log: [...newState.log, `${player.name} gets another roll for a double!`] };
+    if (newState.phase === 'ROLLING' || newState.phase === 'END_TURN') {
+        // We stay in ROLLING or transition back to allow another roll
+        return { ...newState, log: [...log, `${player.name} gets another roll for a double!`], phase: 'ROLLING' };
     }
   }
 
-  return newState;
+  return { ...newState, log };
 }
+
 
 /**
  * evaluateLanding – decides what happens based on which tile was landed on

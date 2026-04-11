@@ -9,7 +9,7 @@
   border: 2px solid #e0e0e0;
   position: relative;
   min-width: 0;
-  width: 35%;
+  width: 40%;
   flex: 0 0 auto;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
