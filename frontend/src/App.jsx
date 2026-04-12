@@ -231,6 +231,7 @@ export default function App() {
     properties: {},
     bank: { houses: 32, hotels: 12, parking: createParkingReward() },
     currentTurn: 0,
+    turnSerial: 0,
     phase: 'ROLL',
     dice: [1, 1]
   });
@@ -239,6 +240,7 @@ export default function App() {
   const properties = gameState.properties;
   const bank = gameState.bank;
   const turn = gameState.currentTurn;
+  const turnSerial = gameState.turnSerial || 0;
   const phase = gameState.phase;
   const dice = gameState.dice;
 
@@ -320,6 +322,69 @@ export default function App() {
   const repaySliderValue = Math.min(maxRepayAmount, Math.max(0, parseInt(loanDraft.repayAmount, 10) || 0));
   const nextTurnLoanTotal = Math.ceil(projectedOutstandingLoan * (1 + LOAN_RATE_PER_TURN));
   const nextTurnInterest = Math.max(0, nextTurnLoanTotal - projectedOutstandingLoan);
+
+  const releaseExpiredMortgagesOnRoll = (playerId) => {
+    const expired = Object.entries(properties).filter(([propId, propState]) => (
+      propState.ownerId === playerId &&
+      propState.mortgaged &&
+      (propState.mortgageTurns || 0) >= 3
+    ));
+
+    if (expired.length === 0) return;
+
+    setProperties(prev => {
+      const updated = { ...prev };
+      expired.forEach(([propId]) => {
+        delete updated[propId];
+      });
+      return updated;
+    });
+
+    expired.forEach(([propId]) => {
+      const tile = BOARD_DATA[Number(propId)];
+      addLog(`${tile?.name || 'Property'} became public again`, playerId);
+    });
+  };
+
+  useEffect(() => {
+    if (phase !== 'ROLL' || !activePlayer?.id) return;
+
+    const mortgagedForPlayer = Object.entries(properties).filter(([, propState]) => (
+      propState.ownerId === activePlayer.id && propState.mortgaged
+    ));
+
+    if (mortgagedForPlayer.length === 0) return;
+
+    const secondTurnNames = [];
+    const thirdTurnNames = [];
+
+    mortgagedForPlayer.forEach(([propId, propState]) => {
+      const nextTurnCount = (propState.mortgageTurns || 0) + 1;
+      const tileName = BOARD_DATA[Number(propId)]?.name || 'Property';
+      if (nextTurnCount === 2) secondTurnNames.push(tileName);
+      if (nextTurnCount >= 3) thirdTurnNames.push(tileName);
+    });
+
+    setProperties(prev => {
+      const updated = { ...prev };
+      Object.entries(updated).forEach(([propId, propState]) => {
+        if (propState.ownerId === activePlayer.id && propState.mortgaged) {
+          updated[propId] = {
+            ...propState,
+            mortgageTurns: (propState.mortgageTurns || 0) + 1,
+          };
+        }
+      });
+      return updated;
+    });
+
+    if (secondTurnNames.length > 0) {
+      addLog(`Mortgage warning: redeem soon (${secondTurnNames.join(', ')})`, activePlayer.id);
+    }
+    if (thirdTurnNames.length > 0) {
+      addLog(`Final warning: redeem before rolling (${thirdTurnNames.join(', ')})`, activePlayer.id);
+    }
+  }, [turnSerial, phase]);
 
   const accrueLoanInterestForRoll = (playerId) => {
     const playerRecord = players.find(p => p.id === playerId);
@@ -428,6 +493,7 @@ export default function App() {
       let tile = BOARD_DATA[pid];
       if (liquidatedMoney < 0 && !p.mortgaged && Object.keys(propsUpdated).filter(k => BOARD_DATA[k].group === tile.group).every(k => propsUpdated[k].houses === 0 && !propsUpdated[k].hotel)) {
         p.mortgaged = true;
+        p.mortgageTurns = 0;
         liquidatedMoney += tile.mortgage;
       }
     }
@@ -532,6 +598,7 @@ export default function App() {
 
   const rollDice = () => {
     if (isRolling || phase !== 'ROLL') return;
+    releaseExpiredMortgagesOnRoll(activePlayer.id);
     setIsRolling(true);
     setTimeout(() => {
       accrueLoanInterestForRoll(activePlayer.id);
@@ -623,7 +690,7 @@ export default function App() {
     const tile = BOARD_DATA[activePlayer.position];
     if (activePlayer.money >= tile.price) {
       setPlayers(prev => { const up = [...prev]; up[turn].money -= tile.price; return up; });
-      setProperties(prev => ({ ...prev, [tile.id]: { ownerId: activePlayer.id, houses: 0, hotel: false, mortgaged: false } }));
+      setProperties(prev => ({ ...prev, [tile.id]: { ownerId: activePlayer.id, houses: 0, hotel: false, mortgaged: false, mortgageTurns: 0 } }));
       addLog(`Bought property`, activePlayer.id);
       setPhase('MANAGE');
     } else {
@@ -649,7 +716,7 @@ export default function App() {
       const winnerObj = players.find(p => p.id === winnerId);
       if(winnerObj && winnerObj.money >= amount) {
           setPlayers(prev => { const up=[...prev]; const idx=up.findIndex(p=>p.id===winnerId); if(idx>-1) up[idx].money -= amount; return up; });
-          setProperties(prev => ({...prev, [state.propertyId]: { ownerId: winnerId, houses: 0, hotel: false, mortgaged: false }}));
+          setProperties(prev => ({...prev, [state.propertyId]: { ownerId: winnerId, houses: 0, hotel: false, mortgaged: false, mortgageTurns: 0 }}));
           addLog(`${winnerObj.name} wins auction for ₹${amount}!`);
       } else {
           addLog("Auction failed.");
@@ -771,8 +838,12 @@ export default function App() {
 
   const endTurn = () => {
     setDoublesCount(0);
-    setTurn((turn + 1) % players.length);
-    setPhase('ROLL');
+    setGameState(prev => ({
+      ...prev,
+      currentTurn: (prev.currentTurn + 1) % prev.players.length,
+      turnSerial: (prev.turnSerial || 0) + 1,
+      phase: 'ROLL',
+    }));
   };
 
   const executeTrade = () => {
@@ -808,13 +879,13 @@ export default function App() {
     const tile = BOARD_DATA[propId];
     if (prop.houses > 0 || prop.hotel) return addLog("Sell houses first!", activePlayer.id);
     if (!prop.mortgaged) {
-      setProperties(prev => ({ ...prev, [propId]: { ...prop, mortgaged: true } }));
+      setProperties(prev => ({ ...prev, [propId]: { ...prop, mortgaged: true, mortgageTurns: 0 } }));
       setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money += tile.mortgage; return up; });
       addLog(`Mortgaged property`, activePlayer.id);
     } else {
       const cost = Math.floor(tile.mortgage * 1.1);
       if (activePlayer.money >= cost) {
-        setProperties(prev => ({ ...prev, [propId]: { ...prop, mortgaged: false } }));
+        setProperties(prev => ({ ...prev, [propId]: { ...prop, mortgaged: false, mortgageTurns: 0 } }));
         setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money -= cost; return up; });
         addLog(`Redeemed property`, activePlayer.id);
       } else {
@@ -1047,6 +1118,7 @@ export default function App() {
                 properties: {},
                 bank: { houses: 32, hotels: 12, parking: createParkingReward() },
                 currentTurn: 0,
+                turnSerial: 0,
                 phase: 'ROLL',
                 dice: [1, 1]
               });
