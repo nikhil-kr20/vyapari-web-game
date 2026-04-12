@@ -7,12 +7,12 @@ import {
 } from 'lucide-react';
 
 // --- INJECT ANIMATION LIBRARIES ---
-const loadScript = (url) => {
+const LoanScript = (url) => {
   return new Promise((resolve) => {
     if (document.querySelector(`script[src="${url}"]`)) return resolve();
     const script = document.createElement('script');
     script.src = url;
-    script.onload = resolve;
+    script.onLoan = resolve;
     document.head.appendChild(script);
   });
 };
@@ -245,10 +245,11 @@ export default function App() {
   const [activeCard, setActiveCard] = useState(null);
   const [selectedTile, setSelectedTile] = useState(null);
   const [floatingLogs, setFloatingLogs] = useState([]);
+  const [manageModal, setManageModal] = useState(false);
 
   useEffect(() => {
-    loadScript('https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js');
-    loadScript('https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js');
+    LoanScript('https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js');
+    LoanScript('https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js');
   }, []);
 
   useEffect(() => {
@@ -670,6 +671,35 @@ export default function App() {
     }
   };
 
+  const sellHouse = (propId) => {
+    const prop = properties[propId];
+    const tile = BOARD_DATA[propId];
+
+    if (prop.hotel) {
+      setProperties(prev => ({ ...prev, [propId]: { ...prop, hotel: false, houses: 4 } }));
+      setPlayers(prev => { const up = [...prev]; const pIndex = up.findIndex(p => p.id === activePlayer.id); if (pIndex > -1) up[pIndex].money += tile.houseCost / 2; return up; });
+      addLog(`Sold HOTEL.`, activePlayer.id);
+    } else if (prop.houses > 0) {
+      setProperties(prev => ({ ...prev, [propId]: { ...prop, houses: prop.houses - 1 } }));
+      setPlayers(prev => { const up = [...prev]; const pIndex = up.findIndex(p => p.id === activePlayer.id); if (pIndex > -1) up[pIndex].money += tile.houseCost / 2; return up; });
+      addLog(`Sold house.`, activePlayer.id);
+    } else {
+      // Sell property to bank
+      setProperties(prev => {
+        const up = { ...prev };
+        delete up[propId];
+        return up;
+      });
+      setPlayers(prev => {
+        const up = [...prev];
+        const pIndex = up.findIndex(p => p.id === activePlayer.id);
+        if (pIndex > -1) up[pIndex].money += tile.price / 2;
+        return up;
+      });
+      addLog(`Sold ${tile.name}.`, activePlayer.id);
+    }
+  };
+
   const buildHouse = (propId) => {
     const prop = properties[propId];
     const tile = BOARD_DATA[propId];
@@ -680,13 +710,6 @@ export default function App() {
 
     const anyMortgaged = groupProps.some(t => properties[t.id]?.mortgaged);
     if (anyMortgaged) return addLog("Redeem all first!", activePlayer.id);
-
-    // Check even building
-    const groupHouses = groupProps.map(t => (properties[t.id]?.hotel ? 5 : (properties[t.id]?.houses || 0)));
-    const minHouses = Math.min(...groupHouses);
-    const currentLevel = prop.hotel ? 5 : (prop.houses || 0);
-
-    if (currentLevel > minHouses) return addLog("Build evenly!", activePlayer.id);
 
     if (activePlayer.money >= tile.houseCost) {
       if (prop.houses < 4 && !prop.hotel) {
@@ -727,14 +750,26 @@ export default function App() {
   useEffect(() => {
     if (phase === 'ACTION_AUCTION' && auctionState) {
         const currentId = auctionState.bidders[auctionState.currentBidderIndex];
-        const activeBot = players.find(p => p.id === currentId);
-        if (activeBot?.isBot) {
+        const currentPlayerObj = players.find(p => p.id === currentId);
+        
+        if (!currentPlayerObj) return;
+
+        const nextBid = Math.max(auctionState.highestBid + 10, 10);
+
+        // Auto Fold if they cannot afford the minimum required bid
+        if (currentPlayerObj.money < nextBid) {
+           const timer = setTimeout(() => {
+               foldAuction(); 
+           }, 500); 
+           return () => clearTimeout(timer);
+        }
+
+        if (currentPlayerObj.isBot) {
             const timer = setTimeout(() => {
                 const tile = BOARD_DATA[auctionState.propertyId];
                 const maxWillingToPay = tile.price * 1.2;
-                const nextBid = Math.max(auctionState.highestBid + 10, 10);
                 
-                if (nextBid > maxWillingToPay || activeBot.money < nextBid + 500) {
+                if (nextBid > maxWillingToPay || currentPlayerObj.money < nextBid + 500) {
                     foldAuction();
                 } else {
                     placeBid(nextBid);
@@ -843,10 +878,30 @@ export default function App() {
               setFloatingLogs([]);
               setTradeState(null);
               setAuctionState(null);
+              setManageModal(false);
               setAppState('game');
             }}
             className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-2xl shadow-xl flex items-center justify-center gap-3 hover:bg-blue-700 active:scale-95 transition-all"
           ><Play fill="currentColor" /> START GAME</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'GAME_OVER') {
+    const winner = players[0] || { name: 'Player' };
+    return (
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4 font-sans animate-in zoom-in-95 duration-500">
+        <div className="bg-white p-12 rounded-3xl shadow-2xl flex flex-col items-center text-center max-w-md w-full border-[4px] border-yellow-400 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-2 bg-yellow-400"></div>
+          <div className="text-7xl mb-6 animate-bounce drop-shadow-md">🏆</div>
+          <h1 className="text-4xl font-black text-slate-800 mb-2 uppercase tracking-tighter">Vyapari Master!</h1>
+          <p className="text-lg text-slate-500 font-bold mb-10 bg-slate-50 border border-slate-100 py-3 px-6 rounded-xl w-full">
+            Winner: <span className="text-blue-600 text-xl block mt-1">{winner.name}</span>
+          </p>
+          <button onClick={() => setAppState('setup')} className="w-full bg-yellow-400 text-slate-900 py-4 rounded-xl font-black text-xl shadow-lg hover:bg-yellow-500 active:scale-95 transition-all flex justify-center items-center gap-2">
+            PLAY AGAIN
+          </button>
         </div>
       </div>
     );
@@ -936,11 +991,11 @@ export default function App() {
           <div className="z-50 w-full h-full flex flex-col items-center justify-center">
             {/* 5 BUTTONS INSIDE THE BOARD */}
             <div className="absolute top-[8%] sm:top-[6%] left-1/2 -translate-x-1/2 w-[85%] max-w-[450px] grid grid-cols-5 gap-1 sm:gap-3">
-              <button onClick={() => addLog("Sell: Choose property")} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-red-50 hover:border-red-200">
+              <button onClick={() => setManageModal(true)} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-red-50 hover:border-red-200">
                 <ShoppingCart className="w-4 h-4 sm:w-6 sm:h-6 text-red-500 group-active:scale-90" />
                 <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Sell</span>
               </button>
-              <button onClick={() => setPhase('MANAGE')} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-green-50 hover:border-green-200">
+              <button onClick={() => setManageModal(true)} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-green-50 hover:border-green-200">
                 <Building className="w-4 h-4 sm:w-6 sm:h-6 text-green-500 group-active:scale-90" />
                 <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Build</span>
               </button>
@@ -952,11 +1007,11 @@ export default function App() {
                 <Repeat className="w-4 h-4 sm:w-6 sm:h-6 text-blue-500 group-active:scale-90" />
                 <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Trade</span>
               </button>
-              <button onClick={() => addLog("Load: Game data")} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-slate-50 hover:border-slate-400">
+              <button onClick={() => addLog("Loan: Game data")} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-slate-50 hover:border-slate-400">
                 <Save className="w-4 h-4 sm:w-6 sm:h-6 text-slate-600 group-active:scale-90" />
-                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Load</span>
+                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Loan</span>
               </button>
-              <button onClick={() => setPhase('MANAGE')} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-orange-50 hover:border-orange-200">
+              <button onClick={() => setManageModal(true)} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-orange-50 hover:border-orange-200">
                 <RefreshCw className="w-4 h-4 sm:w-6 sm:h-6 text-orange-500 group-active:scale-90" />
                 <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Mortgage</span>
               </button>
@@ -987,7 +1042,7 @@ export default function App() {
                       <p className="text-xl font-black text-blue-600">₹{BOARD_DATA[activePlayer.position].price}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={buyProperty} className="flex-1 bg-green-500 text-white py-2 rounded-xl font-black text-[10px] flex items-center justify-center gap-1 shadow-lg shadow-green-200 active:scale-95"><Check size={14} /> BUY</button>
+                      <button onClick={buyProperty} disabled={activePlayer.money < BOARD_DATA[activePlayer.position].price} className={`flex-1 text-white py-2 rounded-xl font-black text-[10px] flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-all ${activePlayer.money >= BOARD_DATA[activePlayer.position].price ? 'bg-green-500 shadow-green-200 hover:bg-green-600' : 'bg-slate-400 shadow-slate-200 opacity-50 cursor-not-allowed'}`}><Check size={14} /> BUY</button>
                       <button onClick={startAuction} className="flex-1 bg-purple-500 text-white py-2 rounded-xl font-black text-[10px] flex items-center justify-center gap-1 shadow-lg shadow-purple-200 active:scale-95">AUCTION</button>
                     </div>
                   </>
@@ -1130,6 +1185,49 @@ export default function App() {
             <button onClick={executeTrade} className="w-full bg-green-500 py-4 rounded-xl text-white font-black text-xl shadow-lg hover:bg-green-600 active:scale-95 transition-all flex items-center justify-center gap-2">
               <Check size={24} /> CONFIRM TRADE
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* PROPERTY DASHBOARD MODAL */}
+      {manageModal && (
+        <div className="fixed inset-0 z-[130] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-[600px] max-h-[80vh] shadow-2xl flex flex-col p-6 animate-in zoom-in-95">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black uppercase text-blue-900 border-b-4 border-blue-500 pb-2">Manage Properties</h2>
+              <button onClick={() => setManageModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500"><X size={24} /></button>
+            </div>
+            <div className="overflow-y-auto pr-2 space-y-3 flex-1">
+              {Object.entries(properties)
+                .filter(([id, p]) => p.ownerId === activePlayer.id)
+                .map(([id, p]) => {
+                  const tile = BOARD_DATA[id];
+                  const colorClass = getGroupColor(tile.group) || 'bg-slate-400';
+                  return (
+                    <div key={id} className={`flex flex-col sm:flex-row items-center gap-4 bg-white border-[2px] ${p.mortgaged ? 'border-red-200 opacity-80' : 'border-slate-100'} p-3 rounded-xl shadow-sm transition-all hover:shadow-md`}>
+                      <div className={`w-full sm:w-20 sm:h-20 ${colorClass} rounded-lg flex items-center justify-center p-2 text-white font-black text-center text-xs leading-tight shadow-inner`}>
+                        {tile.name}
+                      </div>
+                      <div className="flex-1 flex flex-col gap-2 w-full">
+                        <div className="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-100">
+                          <span className="text-xs font-bold text-slate-500 uppercase">Status</span>
+                          <span className={`text-sm font-black ${p.mortgaged ? 'text-red-500' : (p.hotel ? 'text-red-600' : 'text-slate-800')}`}>{p.mortgaged ? 'MORTGAGED' : (p.hotel ? 'HOTEL' : `${p.houses || 0} HOUSES`)}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => buildHouse(id)} disabled={p.mortgaged || p.hotel || tile.type !== 'property'} className="flex-1 bg-green-500 text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex justify-center items-center gap-1"><Home size={12}/> Build</button>
+                          <button onClick={() => sellHouse(id)} disabled={p.mortgaged} className="flex-1 bg-red-500 text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex justify-center items-center gap-1"><ShoppingCart size={12}/> Sell <span className="hidden sm:inline">{(p.houses > 0 || p.hotel) ? 'House' : 'Prop'}</span></button>
+                          <button onClick={() => toggleMortgage(id)} className={`flex-1 ${p.mortgaged ? 'bg-blue-500' : 'bg-orange-500'} text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 transition-all flex justify-center items-center gap-1`}><RefreshCw size={12}/> {p.mortgaged ? 'Redeem' : 'Mortgage'}</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              {Object.entries(properties).filter(([id, p]) => p.ownerId === activePlayer.id).length === 0 && (
+                <div className="text-center text-slate-400 font-bold p-8 border-2 border-dashed border-slate-200 rounded-2xl">
+                  You don't own any properties yet.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
