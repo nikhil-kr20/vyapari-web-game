@@ -266,6 +266,7 @@ export default function App() {
   const [floatingLogs, setFloatingLogs] = useState([]);
   const [manageModal, setManageModal] = useState(false);
   const [loanModal, setLoanModal] = useState(false);
+  const [pendingManage, setPendingManage] = useState({ propId: null, action: null });
   const [loanDraft, setLoanDraft] = useState({ takeAmount: '', repayAmount: '' });
 
   useEffect(() => {
@@ -713,64 +714,64 @@ export default function App() {
   };
 
   const finalizeAuction = (state, winnerId, amount) => {
-      const winnerObj = players.find(p => p.id === winnerId);
-      if(winnerObj && winnerObj.money >= amount) {
-          setPlayers(prev => { const up=[...prev]; const idx=up.findIndex(p=>p.id===winnerId); if(idx>-1) up[idx].money -= amount; return up; });
-          setProperties(prev => ({...prev, [state.propertyId]: { ownerId: winnerId, houses: 0, hotel: false, mortgaged: false, mortgageTurns: 0 }}));
-          addLog(`${winnerObj.name} wins auction for ₹${amount}!`);
-      } else {
-          addLog("Auction failed.");
-      }
-      setPhase('MANAGE');
-      setAuctionState(null);
+    const winnerObj = players.find(p => p.id === winnerId);
+    if (winnerObj && winnerObj.money >= amount) {
+      setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === winnerId); if (idx > -1) up[idx].money -= amount; return up; });
+      setProperties(prev => ({ ...prev, [state.propertyId]: { ownerId: winnerId, houses: 0, hotel: false, mortgaged: false, mortgageTurns: 0 } }));
+      addLog(`${winnerObj.name} wins auction for ₹${amount}!`);
+    } else {
+      addLog("Auction failed.");
+    }
+    setPhase('MANAGE');
+    setAuctionState(null);
   };
 
   const placeBid = (overrideBid = null) => {
-     if(!auctionState) return;
-     const currentId = auctionState.bidders[auctionState.currentBidderIndex];
-     const currentBiderObj = players.find(p => p.id === currentId);
-     const bid = typeof overrideBid === 'number' ? overrideBid : auctionState.targetBid;
+    if (!auctionState) return;
+    const currentId = auctionState.bidders[auctionState.currentBidderIndex];
+    const currentBiderObj = players.find(p => p.id === currentId);
+    const bid = typeof overrideBid === 'number' ? overrideBid : auctionState.targetBid;
 
-     if (bid <= auctionState.highestBid && auctionState.highestBid > 0) return addLog("Bid too low", currentId);
-     if (currentBiderObj.money < bid) return addLog("Not enough money", currentId);
+    if (bid <= auctionState.highestBid && auctionState.highestBid > 0) return addLog("Bid too low", currentId);
+    if (currentBiderObj.money < bid) return addLog("Not enough money", currentId);
 
-     if (auctionState.bidders.length === 1) {
-         return finalizeAuction(auctionState, currentId, bid); 
-     }
+    if (auctionState.bidders.length === 1) {
+      return finalizeAuction(auctionState, currentId, bid);
+    }
 
-     const nextIndex = (auctionState.currentBidderIndex + 1) % auctionState.bidders.length;
-     setAuctionState(prev => ({
-         ...prev,
-         highestBid: bid,
-         highestBidderId: currentId,
-         targetBid: bid + 10,
-         currentBidderIndex: nextIndex
-     }));
-     addLog(`Bids ₹${bid}`, currentId);
+    const nextIndex = (auctionState.currentBidderIndex + 1) % auctionState.bidders.length;
+    setAuctionState(prev => ({
+      ...prev,
+      highestBid: bid,
+      highestBidderId: currentId,
+      targetBid: bid + 10,
+      currentBidderIndex: nextIndex
+    }));
+    addLog(`Bids ₹${bid}`, currentId);
   };
 
   const foldAuction = () => {
-     if(!auctionState) return;
-     const currentId = auctionState.bidders[auctionState.currentBidderIndex];
-     
-     addLog(`Folds`, currentId);
-     
-     const newBidders = auctionState.bidders.filter(id => id !== currentId);
+    if (!auctionState) return;
+    const currentId = auctionState.bidders[auctionState.currentBidderIndex];
 
-     if (newBidders.length === 1 && auctionState.highestBidderId === newBidders[0]) {
-         finalizeAuction(auctionState, newBidders[0], Math.max(10, auctionState.highestBid));
-     } else if (newBidders.length === 0) {
-         addLog("Everyone folded.");
-         setPhase('MANAGE');
-         setAuctionState(null);
-     } else {
-         const nextIndex = auctionState.currentBidderIndex % newBidders.length;
-         setAuctionState(prev => ({
-            ...prev,
-            bidders: newBidders,
-            currentBidderIndex: nextIndex
-         }));
-     }
+    addLog(`Folds`, currentId);
+
+    const newBidders = auctionState.bidders.filter(id => id !== currentId);
+
+    if (newBidders.length === 1 && auctionState.highestBidderId === newBidders[0]) {
+      finalizeAuction(auctionState, newBidders[0], Math.max(10, auctionState.highestBid));
+    } else if (newBidders.length === 0) {
+      addLog("Everyone folded.");
+      setPhase('MANAGE');
+      setAuctionState(null);
+    } else {
+      const nextIndex = auctionState.currentBidderIndex % newBidders.length;
+      setAuctionState(prev => ({
+        ...prev,
+        bidders: newBidders,
+        currentBidderIndex: nextIndex
+      }));
+    }
   };
 
   const calculateRent = (tile, ownership) => {
@@ -947,15 +948,26 @@ export default function App() {
     } else addLog("No funds!", activePlayer.id);
   };
 
+  const confirmManage = (propId) => {
+    if (!pendingManage.propId || pendingManage.propId !== propId || !pendingManage.action) {
+      return addLog('Select an action first', activePlayer.id);
+    }
+    const action = pendingManage.action;
+    setPendingManage({ propId: null, action: null });
+    if (action === 'build') buildHouse(propId);
+    else if (action === 'sell') sellHouse(propId);
+    else if (action === 'mortgage') toggleMortgage(propId);
+  };
+
   // --- BOT AI AUTOMATION ---
   useEffect(() => {
     if (activePlayer.isBot && phase === 'ROLL' && !isRolling) {
       if (activePlayer.inJail) {
-         if (activePlayer.getOutOfJailFree > 0) setTimeout(useJailCard, 1000);
-         else if (activePlayer.jailTurns >= 2 && activePlayer.money > 1000) setTimeout(payJailFine, 1000);
-         else setTimeout(rollDice, 1500);
+        if (activePlayer.getOutOfJailFree > 0) setTimeout(useJailCard, 1000);
+        else if (activePlayer.jailTurns >= 2 && activePlayer.money > 1000) setTimeout(payJailFine, 1000);
+        else setTimeout(rollDice, 1500);
       } else {
-         setTimeout(rollDice, 1500);
+        setTimeout(rollDice, 1500);
       }
     } else if (activePlayer.isBot && phase === 'ACTION_BUY') {
       setTimeout(() => {
@@ -972,34 +984,34 @@ export default function App() {
 
   useEffect(() => {
     if (phase === 'ACTION_AUCTION' && auctionState) {
-        const currentId = auctionState.bidders[auctionState.currentBidderIndex];
-        const currentPlayerObj = players.find(p => p.id === currentId);
-        
-        if (!currentPlayerObj) return;
+      const currentId = auctionState.bidders[auctionState.currentBidderIndex];
+      const currentPlayerObj = players.find(p => p.id === currentId);
 
-        const nextBid = Math.max(auctionState.highestBid + 10, 10);
+      if (!currentPlayerObj) return;
 
-        // Auto Fold if they cannot afford the minimum required bid
-        if (currentPlayerObj.money < nextBid) {
-           const timer = setTimeout(() => {
-               foldAuction(); 
-           }, 500); 
-           return () => clearTimeout(timer);
-        }
+      const nextBid = Math.max(auctionState.highestBid + 10, 10);
 
-        if (currentPlayerObj.isBot) {
-            const timer = setTimeout(() => {
-                const tile = BOARD_DATA[auctionState.propertyId];
-                const maxWillingToPay = tile.price * 1.2;
-                
-                if (nextBid > maxWillingToPay || currentPlayerObj.money < nextBid + 500) {
-                    foldAuction();
-                } else {
-                    placeBid(nextBid);
-                }
-            }, 1000);
-            return () => clearTimeout(timer);
-        }
+      // Auto Fold if they cannot afford the minimum required bid
+      if (currentPlayerObj.money < nextBid) {
+        const timer = setTimeout(() => {
+          foldAuction();
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+
+      if (currentPlayerObj.isBot) {
+        const timer = setTimeout(() => {
+          const tile = BOARD_DATA[auctionState.propertyId];
+          const maxWillingToPay = tile.price * 1.2;
+
+          if (nextBid > maxWillingToPay || currentPlayerObj.money < nextBid + 500) {
+            foldAuction();
+          } else {
+            placeBid(nextBid);
+          }
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
     }
   }, [phase, auctionState, players]);
 
@@ -1269,15 +1281,15 @@ export default function App() {
             {(phase.startsWith('ACTION') || (phase === 'ROLL' && activePlayer.inJail && !activePlayer.isBot)) && activePlayer.position !== undefined && (
               <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 mt-16 shadow-2xl border-[2px] border-blue-500 w-full max-w-[220px] scale-90 sm:scale-100 animate-in zoom-in-95 duration-200">
                 <p className="text-center text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-1">Decision Required</p>
-                
+
                 {phase === 'ROLL' && activePlayer.inJail && (
                   <>
                     <h2 className="text-lg font-black text-center mb-2 text-slate-800">In Jail</h2>
                     <p className="text-[10px] text-center text-slate-500 mb-3 font-bold uppercase">{3 - (activePlayer.jailTurns || 0)} attempts left</p>
                     <div className="space-y-1.5 flex flex-col items-stretch max-w-[150px] mx-auto">
-                        <button onClick={rollDice} disabled={isRolling} className="w-full bg-blue-500 text-white py-2 rounded-lg font-black text-[10px] shadow-sm active:scale-95 transition-all">🎲 Roll Doubles</button>
-                        <button onClick={payJailFine} disabled={activePlayer.money < 500} className={`w-full text-white py-2 rounded-lg font-black text-[10px] shadow-sm transition-all ${activePlayer.money >= 500 ? 'bg-red-500 active:scale-95 cursor-pointer' : 'bg-slate-400 opacity-50 cursor-not-allowed'}`}>💸 Pay ₹500</button>
-                        <button onClick={useJailCard} disabled={!activePlayer.getOutOfJailFree} className={`w-full text-white py-2 rounded-lg font-black text-[10px] shadow-sm transition-all ${activePlayer.getOutOfJailFree > 0 ? 'bg-orange-500 active:scale-95 cursor-pointer' : 'bg-slate-400 opacity-50 cursor-not-allowed'}`}>🎫 Use Card</button>
+                      <button onClick={rollDice} disabled={isRolling} className="w-full bg-blue-500 text-white py-2 rounded-lg font-black text-[10px] shadow-sm active:scale-95 transition-all">🎲 Roll Doubles</button>
+                      <button onClick={payJailFine} disabled={activePlayer.money < 500} className={`w-full text-white py-2 rounded-lg font-black text-[10px] shadow-sm transition-all ${activePlayer.money >= 500 ? 'bg-red-500 active:scale-95 cursor-pointer' : 'bg-slate-400 opacity-50 cursor-not-allowed'}`}>💸 Pay ₹500</button>
+                      <button onClick={useJailCard} disabled={!activePlayer.getOutOfJailFree} className={`w-full text-white py-2 rounded-lg font-black text-[10px] shadow-sm transition-all ${activePlayer.getOutOfJailFree > 0 ? 'bg-orange-500 active:scale-95 cursor-pointer' : 'bg-slate-400 opacity-50 cursor-not-allowed'}`}>🎫 Use Card</button>
                     </div>
                   </>
                 )}
@@ -1300,35 +1312,35 @@ export default function App() {
                   <div className="w-full text-left">
                     <h2 className="text-[14px] font-black mb-2 uppercase text-center text-purple-900 border-b-2 border-purple-200 pb-1 truncate">{BOARD_DATA[auctionState.propertyId].name}</h2>
                     <div className="bg-purple-50 p-2 rounded-lg text-center mb-3">
-                         <span className="text-[9px] uppercase font-bold text-slate-500">Highest Bid</span>
-                         <div className="text-xl font-black text-purple-600">₹{auctionState.highestBid}</div>
-                         <div className="text-[10px] font-bold text-slate-600 truncate">{auctionState.highestBidderId ? players.find(p=>p.id===auctionState.highestBidderId)?.name : 'None'}</div>
+                      <span className="text-[9px] uppercase font-bold text-slate-500">Highest Bid</span>
+                      <div className="text-xl font-black text-purple-600">₹{auctionState.highestBid}</div>
+                      <div className="text-[10px] font-bold text-slate-600 truncate">{auctionState.highestBidderId ? players.find(p => p.id === auctionState.highestBidderId)?.name : 'None'}</div>
                     </div>
-                    
+
                     <div className="bg-white border-2 border-slate-100 p-2 rounded-lg mb-3 text-center shadow-inner">
-                         <span className="text-[9px] uppercase font-bold text-slate-400">Current Bidder</span>
-                         <div className="font-black text-sm text-slate-800 truncate">{players.find(p=>p.id===auctionState.bidders[auctionState.currentBidderIndex])?.name}</div>
-                         <div className="text-[10px] font-bold text-green-600 mt-0.5">Wallet: ₹{players.find(p=>p.id===auctionState.bidders[auctionState.currentBidderIndex])?.money}</div>
+                      <span className="text-[9px] uppercase font-bold text-slate-400">Current Bidder</span>
+                      <div className="font-black text-sm text-slate-800 truncate">{players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.name}</div>
+                      <div className="text-[10px] font-bold text-green-600 mt-0.5">Wallet: ₹{players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.money}</div>
                     </div>
 
                     <div className="space-y-2">
-                        {(!players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.isBot) ? (
-                            <>
-                            <div className="flex flex-col gap-2">
-                               <div className="flex bg-slate-50 border-2 border-slate-200 rounded-lg overflow-hidden relative">
-                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">₹</span>
-                                  <input type="number" step="10" min={Math.max(10, auctionState.highestBid + 10)} max={players.find(p=>p.id===auctionState.bidders[auctionState.currentBidderIndex])?.money || 0} value={auctionState.targetBid} onChange={e => setAuctionState({...auctionState, targetBid: parseInt(e.target.value) || 0})} className="w-full bg-transparent p-1.5 pl-6 font-black text-slate-800 text-left text-sm outline-none" />
-                               </div>
-                               <input type="range" step="10" min={Math.max(10, auctionState.highestBid + 10)} max={Math.max(Math.max(10, auctionState.highestBid + 10), players.find(p=>p.id===auctionState.bidders[auctionState.currentBidderIndex])?.money || 0)} value={Math.max(Math.max(10, auctionState.highestBid + 10), auctionState.targetBid)} onChange={e => setAuctionState({...auctionState, targetBid: parseInt(e.target.value) || 0})} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                      {(!players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.isBot) ? (
+                        <>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex bg-slate-50 border-2 border-slate-200 rounded-lg overflow-hidden relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">₹</span>
+                              <input type="number" step="10" min={Math.max(10, auctionState.highestBid + 10)} max={players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.money || 0} value={auctionState.targetBid} onChange={e => setAuctionState({ ...auctionState, targetBid: parseInt(e.target.value) || 0 })} className="w-full bg-transparent p-1.5 pl-6 font-black text-slate-800 text-left text-sm outline-none" />
                             </div>
-                            <div className="flex gap-1.5 mt-2">
-                               <button onClick={() => placeBid()} className="flex-1 bg-green-500 text-white font-black text-[10px] py-2 sm:py-3 rounded-lg shadow-md uppercase active:scale-95 transition-all">Bid</button>
-                               <button onClick={foldAuction} className="flex-1 bg-red-500 text-white font-black text-[10px] py-2 sm:py-3 rounded-lg shadow-md uppercase active:scale-95 transition-all">Fold</button>
-                            </div>
-                            </>
-                        ) : (
-                            <div className="text-center font-bold text-slate-500 text-[10px] italic py-2 animate-pulse">Bot is thinking...</div>
-                        )}
+                            <input type="range" step="10" min={Math.max(10, auctionState.highestBid + 10)} max={Math.max(Math.max(10, auctionState.highestBid + 10), players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.money || 0)} value={Math.max(Math.max(10, auctionState.highestBid + 10), auctionState.targetBid)} onChange={e => setAuctionState({ ...auctionState, targetBid: parseInt(e.target.value) || 0 })} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                          </div>
+                          <div className="flex gap-1.5 mt-2">
+                            <button onClick={() => placeBid()} className="flex-1 bg-green-500 text-white font-black text-[10px] py-2 sm:py-3 rounded-lg shadow-md uppercase active:scale-95 transition-all">Bid</button>
+                            <button onClick={foldAuction} className="flex-1 bg-red-500 text-white font-black text-[10px] py-2 sm:py-3 rounded-lg shadow-md uppercase active:scale-95 transition-all">Fold</button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center font-bold text-slate-500 text-[10px] italic py-2 animate-pulse">Bot is thinking...</div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1535,10 +1547,59 @@ export default function App() {
                           <span className={`text-sm font-black ${p.mortgaged ? 'text-red-500' : (p.hotel ? 'text-red-600' : 'text-slate-800')}`}>{p.mortgaged ? 'MORTGAGED' : (p.hotel ? 'HOTEL' : `${p.houses || 0} HOUSES`)}</span>
                         </div>
                         <div className="flex gap-2">
-                          <button onClick={() => buildHouse(id)} disabled={p.mortgaged || p.hotel || tile.type !== 'property'} className="flex-1 bg-green-500 text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex justify-center items-center gap-1"><Home size={12}/> Build</button>
-                          <button onClick={() => sellHouse(id)} disabled={p.mortgaged} className="flex-1 bg-red-500 text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex justify-center items-center gap-1"><ShoppingCart size={12}/> Sell <span className="hidden sm:inline">{(p.houses > 0 || p.hotel) ? 'House' : 'Prop'}</span></button>
-                          <button onClick={() => toggleMortgage(id)} className={`flex-1 ${p.mortgaged ? 'bg-blue-500' : 'bg-orange-500'} text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 transition-all flex justify-center items-center gap-1`}><RefreshCw size={12}/> {p.mortgaged ? 'Redeem' : 'Mortgage'}</button>
+                          <button
+                            onClick={() => {
+                              if (p.mortgaged || p.hotel || tile.type !== 'property') return;
+                              setPendingManage(prev => (prev.propId === id && prev.action === 'build' ? { propId: null, action: null } : { propId: id, action: 'build' }));
+                            }}
+                            disabled={p.mortgaged || p.hotel || tile.type !== 'property'}
+                            className={`flex-1 ${pendingManage.propId === id && pendingManage.action === 'build' ? 'bg-yellow-600' : 'bg-green-500'} text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex justify-center items-center gap-1`}>
+                            <Home size={12} /> Build
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              if (p.mortgaged) return;
+                              setPendingManage(prev => (prev.propId === id && prev.action === 'sell' ? { propId: null, action: null } : { propId: id, action: 'sell' }));
+                            }}
+                            disabled={p.mortgaged}
+                            className={`flex-1 ${pendingManage.propId === id && pendingManage.action === 'sell' ? 'bg-yellow-600' : 'bg-red-500'} text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex justify-center items-center gap-1`}>
+                            <ShoppingCart size={12} /> Sell <span className="hidden sm:inline">{(p.houses > 0 || p.hotel) ? 'House' : 'Prop'}</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setPendingManage(prev => (prev.propId === id && prev.action === 'mortgage' ? { propId: null, action: null } : { propId: id, action: 'mortgage' }));
+                            }}
+                            className={`flex-1 ${pendingManage.propId === id && pendingManage.action === 'mortgage' ? 'bg-yellow-600' : (p.mortgaged ? 'bg-blue-500' : 'bg-orange-500')} text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 transition-all flex justify-center items-center gap-1`}>
+                            <RefreshCw size={12} /> {p.mortgaged ? 'Redeem' : 'Mortgage'}
+                          </button>
                         </div>
+                        <button
+                          onClick={() => confirmManage(id)}
+                          className="flex-1 bg-purple-500 text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 transition-all flex justify-center items-center gap-1"
+                        >
+                          {(() => {
+                            if (pendingManage.propId !== id || !pendingManage.action) return 'Confirm';
+                            const act = pendingManage.action;
+                            if (act === 'build') return `Pay Rs ${tile.houseCost} to build`;
+                            if (act === 'sell') {
+                              let amount = 0;
+                              if (p.hotel) amount = Math.floor(tile.houseCost / 2);
+                              else if (p.houses > 0) amount = Math.floor(tile.houseCost / 2);
+                              else amount = Math.floor(tile.price / 2);
+                              return `Get Rs ${amount}`;
+                            }
+                            if (act === 'mortgage') {
+                              if (p.mortgaged) {
+                                const cost = Math.floor(tile.mortgage * 1.1);
+                                return `Pay Rs ${cost} to redeem`;
+                              }
+                              return `Confirm and get Rs ${tile.mortgage}`;
+                            }
+                            return 'Confirm';
+                          })()}
+                        </button>
                       </div>
                     </div>
                   );
@@ -1647,6 +1708,7 @@ export default function App() {
             <div className={`${getGroupColor(selectedTile.group) || 'bg-slate-200'} p-4 text-center border-b-[3px] border-slate-800`}>
               <h3 className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-1 ${['YELLOW', 'LIGHT_BLUE', 'PINK'].includes(selectedTile.group) ? 'text-slate-800' : 'text-white'}`}>Title Deed</h3>
               <h1 className={`text-2xl font-black uppercase tracking-wider ${['YELLOW', 'LIGHT_BLUE', 'PINK'].includes(selectedTile.group) ? 'text-slate-800' : 'text-white'}`}>{selectedTile.name}</h1>
+              <div className="justify-between items-center font- text-sm italic text-white mb-(-2)"><span>₹{selectedTile.price}</span></div>
             </div>
             <div className="p-5 bg-[#fdfdfd] text-slate-800 font-serif">
               {selectedTile.type === 'property' ? (
