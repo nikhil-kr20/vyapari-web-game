@@ -187,7 +187,7 @@ const CARDS = {
   CHANCE: [
     { text: "Advance to GO. Collect ₹2000.", action: (p) => ({ type: 'MOVE_TO', pos: 0 }) },
     { text: "Go directly to Jail. Do not pass GO.", action: (p) => ({ type: 'GOTO_JAIL' }) },
-    { text: "Speeding fine! Pay ₹150.", action: (p) => ({ type: 'PAY_BANK', amount: 150 }) },
+    { text: "Speeding fine! Pay ₹1500.", action: (p) => ({ type: 'PAY_BANK', amount: 1500 }) },
     { text: "Your building loan matures. Collect ₹1500.", action: (p) => ({ type: 'RECEIVE_BANK', amount: 1500 }) },
     { text: "Get Out of Jail Free.", action: (p) => ({ type: 'GET_OUT_OF_JAIL_FREE' }) },
   ],
@@ -1179,7 +1179,7 @@ export default function App() {
       `}</style>
 
       {/* QUIT BUTTON */}
-      <button onClick={() => setAppState('setup')} className="absolute top-4 left-1/2 -translate-x-1/2 z-[120] bg-white/90 hover:bg-red-500 hover:text-white transition-all p-3 sm:p-4 rounded-full shadow-lg flex items-center gap-2 group border border-slate-200">
+      <button onClick={() => setAppState('setup')} className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-white/90 hover:bg-red-500 hover:text-white transition-all p-3 sm:p-4 rounded-full shadow-lg flex items-center gap-2 group border border-slate-200">
         <LogOut size={20} /><span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all text-sm font-black px-0 group-hover:px-1 uppercase tracking-tighter">Quit</span>
       </button>
 
