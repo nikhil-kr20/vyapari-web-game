@@ -840,6 +840,21 @@ export default function App() {
     return '';
   };
 
+  const getPawnStackStyle = (index, total) => {
+    if (total <= 1) {
+      return { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' };
+    }
+
+    const angle = (index / total) * Math.PI * 2;
+    const radius = total === 2 ? 8 : total === 3 ? 10 : 12;
+
+    return {
+      left: `calc(50% + ${Math.cos(angle) * radius}px)`,
+      top: `calc(50% + ${Math.sin(angle) * radius}px)`,
+      transform: 'translate(-50%, -50%)',
+    };
+  };
+
   // --- SCREENS ---
   if (appState === 'setup') {
     return (
@@ -1009,9 +1024,13 @@ export default function App() {
                 {propData?.mortgaged && (<div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-10 text-white font-black text-[8px] uppercase rotate-[-45deg]">Mortgaged</div>)}
               </div>
               {owner && !isCorner && (<div className={`absolute z-20 ${getOwnershipMarkerStyle(tile.id)}`}><PawnIcon colorClass={owner.color} size="w-4 h-4 sm:w-7 sm:h-7" /></div>)}
-              <div className="absolute inset-0 p-1 flex items-center justify-center pointer-events-none z-30"><div className="grid grid-cols-2 gap-1 w-full h-full max-w-[85%] max-h-[85%] items-center justify-items-center">
-                {occupants.map(p => (<div key={p.id} className="flex items-center justify-center w-full h-full overflow-hidden"><PawnIcon id={`pawn-${p.id}`} colorClass={p.color} size="w-full h-full max-w-[14px] max-h-[14px] sm:max-w-[28px] sm:max-h-[28px]" /></div>))}
-              </div></div>
+              <div className="absolute inset-0 pointer-events-none z-30">
+                {occupants.map((p, index) => (
+                  <div key={p.id} className="absolute" style={{ ...getPawnStackStyle(index, occupants.length), zIndex: 30 + index }}>
+                    <PawnIcon id={`pawn-${p.id}`} colorClass={p.color} size="w-5 h-5 sm:w-9 sm:h-9" />
+                  </div>
+                ))}
+              </div>
             </div>
           );
         })}
