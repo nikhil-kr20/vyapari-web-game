@@ -27,17 +27,68 @@ const PawnIcon = ({ colorClass, size = "w-4 h-4 sm:w-6 sm:h-6", id }) => {
   );
 };
 
-// --- REPLACED DICE AREA WITH BUTTON ---
-const DiceArea = ({ isActive, isRolling, onRoll }) => (
-  <div className={`transition-all duration-500 transform ${isActive ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-50 translate-y-4 pointer-events-none'}`}>
-    <button 
-      onClick={onRoll}
-      disabled={isRolling}
-      className={`px-8 py-3 rounded-xl bg-blue-600 text-white font-black text-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all flex items-center gap-2 ${isRolling ? 'animate-pulse cursor-wait' : ''}`}
-    >
-      <Dices size={20} />
-      {isRolling ? 'ROLLING...' : 'ROLL'}
-    </button>
+// --- DICE COMPONENT ---
+const Die = ({ value, isRolling }) => {
+  const [fakeValue, setFakeValue] = useState(value);
+
+  useEffect(() => {
+    let interval;
+    if (isRolling) {
+      interval = setInterval(() => {
+        setFakeValue(Math.floor(Math.random() * 6) + 1);
+      }, 30);
+    } else {
+      setFakeValue(value);
+    }
+    return () => clearInterval(interval);
+  }, [isRolling, value]);
+
+  const dots = {
+    1: [4],
+    2: [0, 8],
+    3: [0, 4, 8],
+    4: [0, 2, 6, 8],
+    5: [0, 2, 4, 6, 8],
+    6: [0, 2, 3, 5, 6, 8],
+  };
+
+  const currentVal = isRolling ? fakeValue : value;
+
+  return (
+    <div className={`
+      w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-xl shadow-lg border-2 border-slate-200 
+      flex items-center justify-center transition-all duration-150
+      ${isRolling ? 'animate-die-roll' : 'hover:scale-110 active:scale-95'}
+    `}>
+      <div className="grid grid-cols-3 grid-rows-3 gap-1 w-8 h-8 sm:w-10 sm:h-10">
+        {[...Array(9)].map((_, i) => (
+          <div key={i} className="flex items-center justify-center">
+            {dots[currentVal]?.includes(i) && (
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-slate-800 rounded-full shadow-inner" />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const DiceArea = ({ isActive, isRolling, onRoll, dice }) => (
+  <div 
+    onClick={isActive && !isRolling ? onRoll : undefined}
+    className={`
+      transition-all duration-500 transform 
+      ${isActive ? 'opacity-100 scale-100 translate-y-0 cursor-pointer' : 'opacity-0 scale-50 translate-y-4 pointer-events-none'}
+      flex flex-col items-center gap-2
+    `}
+  >
+    <div className="flex gap-3">
+      <Die value={dice[0]} isRolling={isRolling} />
+      <Die value={dice[1]} isRolling={isRolling} />
+    </div>
+    {isActive && !isRolling && (
+      <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest animate-pulse">Click to Roll</span>
+    )}
   </div>
 );
 
@@ -315,7 +366,7 @@ export default function App() {
         setDoublesCount(0);
       }
       movePlayerStepByStep(d1 + d2);
-    }, 1200);
+    }, 500);
   };
 
   const handleLanding = (posId) => {
@@ -596,6 +647,14 @@ export default function App() {
         }
         .animate-float-up-vanish {
           animation: floatUpVanish 3s ease-out forwards;
+        }
+        @keyframes dieRoll {
+          0% { transform: rotate(0deg) scale(1); }
+          50% { transform: rotate(180deg) scale(1.2); }
+          100% { transform: rotate(360deg) scale(1); }
+        }
+        .animate-die-roll {
+          animation: dieRoll 0.1s linear infinite;
         }
       `}</style>
 
