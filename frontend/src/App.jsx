@@ -169,6 +169,17 @@ const BOARD_DATA = [
   { id: 39, type: 'property', name: 'Delhi CP', group: 'DARK_BLUE', price: 4000, houseCost: 2000, mortgage: 2000, rent: [500, 2000, 6000, 14000, 17000, 20000] },
 ];
 
+const PARKING_BASE_BONUS = 500;
+const PARKING_MULTIPLIERS = [1, 1, 1, 2, 2, 3, 4];
+
+const createParkingReward = () => {
+  const multiplier = PARKING_MULTIPLIERS[Math.floor(Math.random() * PARKING_MULTIPLIERS.length)];
+  return {
+    amount: PARKING_BASE_BONUS * multiplier,
+    multiplier,
+  };
+};
+
 const CARDS = {
   CHANCE: [
     { text: "Advance to GO. Collect ₹2000.", action: (p) => ({ type: 'MOVE_TO', pos: 0 }) },
@@ -215,7 +226,7 @@ export default function App() {
   const [gameState, setGameState] = useState({
     players: [],
     properties: {},
-    bank: { houses: 32, hotels: 12 },
+    bank: { houses: 32, hotels: 12, parking: createParkingReward() },
     currentTurn: 0,
     phase: 'ROLL',
     dice: [1, 1]
@@ -223,12 +234,14 @@ export default function App() {
 
   const players = gameState.players;
   const properties = gameState.properties;
+  const bank = gameState.bank;
   const turn = gameState.currentTurn;
   const phase = gameState.phase;
   const dice = gameState.dice;
 
   const setPlayers = (updater) => setGameState(prev => ({ ...prev, players: typeof updater === 'function' ? updater(prev.players) : updater }));
   const setProperties = (updater) => setGameState(prev => ({ ...prev, properties: typeof updater === 'function' ? updater(prev.properties) : updater }));
+  const setBank = (updater) => setGameState(prev => ({ ...prev, bank: typeof updater === 'function' ? updater(prev.bank) : updater }));
   const setTurn = (updater) => setGameState(prev => ({ ...prev, currentTurn: typeof updater === 'function' ? updater(prev.currentTurn) : updater }));
   const setPhase = (updater) => setGameState(prev => ({ ...prev, phase: typeof updater === 'function' ? updater(prev.phase) : updater }));
   const setDice = (updater) => setGameState(prev => ({ ...prev, dice: typeof updater === 'function' ? updater(prev.dice) : updater }));
@@ -457,6 +470,26 @@ export default function App() {
     }
     else if (tile.type === 'tax') {
       payBank(tile.amount, `Paid ${tile.name}`);
+      setPhase('MANAGE');
+    }
+    else if (tile.id === 20) {
+      const parkingReward = bank?.parking || createParkingReward();
+      const nextParkingReward = createParkingReward();
+
+      setPlayers(prev => {
+        const up = [...prev];
+        const pIndex = up.findIndex(p => p.id === activePlayer.id);
+        if (pIndex > -1) up[pIndex].money += parkingReward.amount;
+        return up;
+      });
+
+      setBank(prev => ({ ...prev, parking: nextParkingReward }));
+      addLog(`Parking reward +₹${parkingReward.amount}`, activePlayer.id);
+
+      if (nextParkingReward.multiplier > 1) {
+        addLog(`Next parking: x${nextParkingReward.multiplier} bonus!`);
+      }
+
       setPhase('MANAGE');
     }
     else if (tile.id === 30) {
@@ -867,7 +900,7 @@ export default function App() {
               setGameState({
                 players: Array.from({ length: playerCount }).map((_, i) => ({ id: i + 1, name: gameMode === 'bot' && i > 0 ? `Bot ${i + 1}` : `Player ${i + 1}`, color: colors[i], money: startingMoney, position: 0, isBot: gameMode === 'bot' && i > 0, inJail: false, jailTurns: 0 })),
                 properties: {},
-                bank: { houses: 32, hotels: 12 },
+                bank: { houses: 32, hotels: 12, parking: createParkingReward() },
                 currentTurn: 0,
                 phase: 'ROLL',
                 dice: [1, 1]
@@ -891,16 +924,11 @@ export default function App() {
   if (phase === 'GAME_OVER') {
     const winner = players[0] || { name: 'Player' };
     return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4 font-sans animate-in zoom-in-95 duration-500">
-        <div className="bg-white p-12 rounded-3xl shadow-2xl flex flex-col items-center text-center max-w-md w-full border-[4px] border-yellow-400 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-2 bg-yellow-400"></div>
-          <div className="text-7xl mb-6 animate-bounce drop-shadow-md">🏆</div>
-          <h1 className="text-4xl font-black text-slate-800 mb-2 uppercase tracking-tighter">Vyapari Master!</h1>
-          <p className="text-lg text-slate-500 font-bold mb-10 bg-slate-50 border border-slate-100 py-3 px-6 rounded-xl w-full">
-            Winner: <span className="text-blue-600 text-xl block mt-1">{winner.name}</span>
-          </p>
-          <button onClick={() => setAppState('setup')} className="w-full bg-yellow-400 text-slate-900 py-4 rounded-xl font-black text-xl shadow-lg hover:bg-yellow-500 active:scale-95 transition-all flex justify-center items-center gap-2">
-            PLAY AGAIN
+      <div className="win-screen min-h-screen bg-blue-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 text-center w-full max-w-md border-2 border-yellow-300">
+          <h1 className="text-3xl font-black text-slate-800 mb-6">🏆 Winner: {winner.name}</h1>
+          <button onClick={() => setAppState('setup')} className="bg-blue-600 text-white py-3 px-6 rounded-xl font-black hover:bg-blue-700 active:scale-95 transition-all">
+            Restart
           </button>
         </div>
       </div>
@@ -970,6 +998,11 @@ export default function App() {
                 <div className={`flex flex-col items-center justify-center w-full h-full ${colorClass ? 'pt-[22%]' : 'px-0.5'}`}>
                   {!colorClass && <span className="text-xs sm:text-2xl mb-0.5">{tile.icon || (tile.type === 'station' ? '🚂' : '')}</span>}
                   <span className="text-[min(2vw,7.5px)] sm:text-[0.65rem] font-black uppercase text-center leading-[0.85] px-0.5 w-full break-all overflow-visible h-auto max-h-[45%] flex items-center justify-center">{tile.name}</span>
+                  {tile.id === 20 && (
+                    <span className="text-[min(1.7vw,6px)] sm:text-[0.55rem] font-black text-green-700 mt-0.5">
+                      ₹{(bank?.parking?.amount || PARKING_BASE_BONUS).toLocaleString()}
+                    </span>
+                  )}
                   {!isCorner && tile.price > 0 && <span className="text-[min(1.8vw,6.5px)] sm:text-[0.55rem] font-bold mt-auto pb-0.5 text-slate-600">₹{tile.price}</span>}
                 </div>
                 {propData?.mortgaged && (<div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-10 text-white font-black text-[8px] uppercase rotate-[-45deg]">Mortgaged</div>)}
