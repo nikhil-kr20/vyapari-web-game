@@ -236,6 +236,9 @@ export default function App() {
   // Trade State
   const [tradeState, setTradeState] = useState(null);
 
+  // Auction State
+  const [auctionState, setAuctionState] = useState(null);
+
   // Ephemeral State
   const [doublesCount, setDoublesCount] = useState(0);
   const [isRolling, setIsRolling] = useState(false);
@@ -374,10 +377,27 @@ export default function App() {
       }
       return up;
     });
-    setPhase('END');
+    setPhase('MANAGE');
   };
 
   // --- CORE LOOP ---
+  const payJailFine = () => {
+    if (activePlayer.money >= 500) {
+      payBank(500, "Jail Fine");
+      setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === activePlayer.id); if (idx > -1) { up[idx].inJail = false; up[idx].jailTurns = 0; } return up; });
+      addLog(`Paid fine to escape!`, activePlayer.id);
+    } else {
+      addLog(`Not enough money!`, activePlayer.id);
+    }
+  };
+
+  const useJailCard = () => {
+    if (activePlayer.getOutOfJailFree > 0) {
+      setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === activePlayer.id); if (idx > -1) { up[idx].inJail = false; up[idx].jailTurns = 0; up[idx].getOutOfJailFree -= 1; } return up; });
+      addLog(`Used Jail Card!`, activePlayer.id);
+    }
+  };
+
   const rollDice = () => {
     if (isRolling || phase !== 'ROLL') return;
     setIsRolling(true);
@@ -393,10 +413,6 @@ export default function App() {
           addLog(`Escaped Jail!`, activePlayer.id);
           setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === activePlayer.id); if (idx > -1) { up[idx].inJail = false; up[idx].jailTurns = 0; } return up; });
           movePlayerStepByStep(d1 + d2);
-        } else if (activePlayer.getOutOfJailFree > 0) {
-          addLog(`Used Get Out of Jail Free!`, activePlayer.id);
-          setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === activePlayer.id); if (idx > -1) { up[idx].inJail = false; up[idx].jailTurns = 0; up[idx].getOutOfJailFree--; } return up; });
-          movePlayerStepByStep(d1 + d2);
         } else {
           const newTurns = (activePlayer.jailTurns || 0) + 1;
           if (newTurns >= 3) {
@@ -407,23 +423,12 @@ export default function App() {
           } else {
             addLog(`Stay in jail (${newTurns})`, activePlayer.id);
             setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === activePlayer.id); if (idx > -1) up[idx].jailTurns = newTurns; return up; });
-            setPhase('END');
+            setPhase('MANAGE');
           }
         }
         return;
       }
-      if (isDouble) {
-        if (doublesCount + 1 >= 3) {
-          addLog(`Speeding! (Jail)`, activePlayer.id);
-          setDoublesCount(0);
-          jumpToJail();
-          return;
-        } else {
-          setDoublesCount(prev => prev + 1);
-        }
-      } else {
-        setDoublesCount(0);
-      }
+
       movePlayerStepByStep(d1 + d2);
     }, 500);
   };
@@ -436,12 +441,12 @@ export default function App() {
       else if (ownership.ownerId !== activePlayer.id) {
         if (ownership.mortgaged) {
           addLog(`Property mortgaged.`, activePlayer.id);
-          setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
+          setPhase('MANAGE');
         } else {
-          setPhase('ACTION_PAY');
+          payRentAction();
         }
       }
-      else setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
+      else setPhase('MANAGE');
     }
     else if (tile.type === 'chance' || tile.type === 'chest') {
       const deck = tile.type === 'chance' ? CARDS.CHANCE : CARDS.CHEST;
@@ -451,13 +456,13 @@ export default function App() {
     }
     else if (tile.type === 'tax') {
       payBank(tile.amount, `Paid ${tile.name}`);
-      setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
+      setPhase('MANAGE');
     }
     else if (tile.id === 30) {
       addLog(`Sent to Jail!`, activePlayer.id);
       jumpToJail();
     } else {
-      setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
+      setPhase('MANAGE');
     }
   };
 
@@ -467,11 +472,85 @@ export default function App() {
       setPlayers(prev => { const up = [...prev]; up[turn].money -= tile.price; return up; });
       setProperties(prev => ({ ...prev, [tile.id]: { ownerId: activePlayer.id, houses: 0, hotel: false, mortgaged: false } }));
       addLog(`Bought property`, activePlayer.id);
-      setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
+      setPhase('MANAGE');
     } else {
       addLog(`No funds!`, activePlayer.id);
-      setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
+      setPhase('MANAGE');
     }
+  };
+
+  const startAuction = () => {
+    const tile = BOARD_DATA[activePlayer.position];
+    setAuctionState({
+      propertyId: tile.id,
+      bidders: players.map(p => p.id),
+      targetBid: Math.max(10, Math.floor(tile.price * 0.1)),
+      highestBid: 0,
+      highestBidderId: null,
+      currentBidderIndex: 0
+    });
+    setPhase('ACTION_AUCTION');
+  };
+
+  const finalizeAuction = (state, winnerId, amount) => {
+      const winnerObj = players.find(p => p.id === winnerId);
+      if(winnerObj && winnerObj.money >= amount) {
+          setPlayers(prev => { const up=[...prev]; const idx=up.findIndex(p=>p.id===winnerId); if(idx>-1) up[idx].money -= amount; return up; });
+          setProperties(prev => ({...prev, [state.propertyId]: { ownerId: winnerId, houses: 0, hotel: false, mortgaged: false }}));
+          addLog(`${winnerObj.name} wins auction for ₹${amount}!`);
+      } else {
+          addLog("Auction failed.");
+      }
+      setPhase('MANAGE');
+      setAuctionState(null);
+  };
+
+  const placeBid = (overrideBid = null) => {
+     if(!auctionState) return;
+     const currentId = auctionState.bidders[auctionState.currentBidderIndex];
+     const currentBiderObj = players.find(p => p.id === currentId);
+     const bid = typeof overrideBid === 'number' ? overrideBid : auctionState.targetBid;
+
+     if (bid <= auctionState.highestBid && auctionState.highestBid > 0) return addLog("Bid too low", currentId);
+     if (currentBiderObj.money < bid) return addLog("Not enough money", currentId);
+
+     if (auctionState.bidders.length === 1) {
+         return finalizeAuction(auctionState, currentId, bid); 
+     }
+
+     const nextIndex = (auctionState.currentBidderIndex + 1) % auctionState.bidders.length;
+     setAuctionState(prev => ({
+         ...prev,
+         highestBid: bid,
+         highestBidderId: currentId,
+         targetBid: bid + 10,
+         currentBidderIndex: nextIndex
+     }));
+     addLog(`Bids ₹${bid}`, currentId);
+  };
+
+  const foldAuction = () => {
+     if(!auctionState) return;
+     const currentId = auctionState.bidders[auctionState.currentBidderIndex];
+     
+     addLog(`Folds`, currentId);
+     
+     const newBidders = auctionState.bidders.filter(id => id !== currentId);
+
+     if (newBidders.length === 1 && auctionState.highestBidderId === newBidders[0]) {
+         finalizeAuction(auctionState, newBidders[0], Math.max(10, auctionState.highestBid));
+     } else if (newBidders.length === 0) {
+         addLog("Everyone folded.");
+         setPhase('MANAGE');
+         setAuctionState(null);
+     } else {
+         const nextIndex = auctionState.currentBidderIndex % newBidders.length;
+         setAuctionState(prev => ({
+            ...prev,
+            bidders: newBidders,
+            currentBidderIndex: nextIndex
+         }));
+     }
   };
 
   const calculateRent = (tile, ownership) => {
@@ -497,7 +576,7 @@ export default function App() {
     const ownership = properties[tile.id];
     const ownerIdx = players.findIndex(p => p.id === ownership.ownerId);
     const owner = players[ownerIdx];
-    if (!owner) return setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
+    if (!owner) return setPhase('MANAGE');
     const amount = calculateRent(tile, ownership);
     setPlayers(prev => {
       const up = [...prev];
@@ -507,7 +586,7 @@ export default function App() {
     });
     addLog(`Paid ₹${amount} rent.`, activePlayer.id);
     if (!checkBankruptcy(activePlayer.id, activePlayer.money - amount)) {
-      setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
+      setPhase('MANAGE');
     }
   };
 
@@ -522,10 +601,10 @@ export default function App() {
     setActiveCard(null);
     if (result.type === 'RECEIVE_BANK') {
       setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money += result.amount; return up; });
-      setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
+      setPhase('MANAGE');
     } else if (result.type === 'PAY_BANK') {
       payBank(result.amount, "Card Fine");
-      setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
+      setPhase('MANAGE');
     } else if (result.type === 'MOVE_TO') {
       const diff = result.pos >= activePlayer.position ? result.pos - activePlayer.position : (40 - activePlayer.position) + result.pos;
       movePlayerStepByStep(diff, true);
@@ -533,7 +612,7 @@ export default function App() {
       jumpToJail();
     } else if (result.type === 'GET_OUT_OF_JAIL_FREE') {
       setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].getOutOfJailFree = (up[turn].getOutOfJailFree || 0) + 1; return up; });
-      setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
+      setPhase('MANAGE');
     }
   };
 
@@ -625,21 +704,46 @@ export default function App() {
   // --- BOT AI AUTOMATION ---
   useEffect(() => {
     if (activePlayer.isBot && phase === 'ROLL' && !isRolling) {
-      setTimeout(rollDice, 1500);
+      if (activePlayer.inJail) {
+         if (activePlayer.getOutOfJailFree > 0) setTimeout(useJailCard, 1000);
+         else if (activePlayer.jailTurns >= 2 && activePlayer.money > 1000) setTimeout(payJailFine, 1000);
+         else setTimeout(rollDice, 1500);
+      } else {
+         setTimeout(rollDice, 1500);
+      }
     } else if (activePlayer.isBot && phase === 'ACTION_BUY') {
       setTimeout(() => {
         const tile = BOARD_DATA[activePlayer.position];
         if (activePlayer.money > tile.price + 1500) buyProperty();
-        else setPhase(doublesCount > 0 ? 'ROLL' : 'END');
+        else startAuction();
       }, 1500);
-    } else if (activePlayer.isBot && phase === 'ACTION_PAY') {
-      setTimeout(payRentAction, 1500);
     } else if (activePlayer.isBot && phase === 'ACTION_CARD') {
       setTimeout(applyCard, 1500);
     } else if (activePlayer.isBot && (phase === 'MANAGE' || phase === 'END')) {
       setTimeout(endTurn, 1000);
     }
   }, [phase, turn, activePlayer.isBot, isRolling]);
+
+  useEffect(() => {
+    if (phase === 'ACTION_AUCTION' && auctionState) {
+        const currentId = auctionState.bidders[auctionState.currentBidderIndex];
+        const activeBot = players.find(p => p.id === currentId);
+        if (activeBot?.isBot) {
+            const timer = setTimeout(() => {
+                const tile = BOARD_DATA[auctionState.propertyId];
+                const maxWillingToPay = tile.price * 1.2;
+                const nextBid = Math.max(auctionState.highestBid + 10, 10);
+                
+                if (nextBid > maxWillingToPay || activeBot.money < nextBid + 500) {
+                    foldAuction();
+                } else {
+                    placeBid(nextBid);
+                }
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }
+  }, [phase, auctionState, players]);
 
 
   // --- RENDER HELPERS ---
@@ -725,7 +829,20 @@ export default function App() {
           <button
             onClick={() => {
               const colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500'];
-              setPlayers(Array.from({ length: playerCount }).map((_, i) => ({ id: i + 1, name: gameMode === 'bot' && i > 0 ? `Bot ${i + 1}` : `Player ${i + 1}`, color: colors[i], money: startingMoney, position: 0, isBot: gameMode === 'bot' && i > 0, inJail: false, jailTurns: 0 })));
+              setGameState({
+                players: Array.from({ length: playerCount }).map((_, i) => ({ id: i + 1, name: gameMode === 'bot' && i > 0 ? `Bot ${i + 1}` : `Player ${i + 1}`, color: colors[i], money: startingMoney, position: 0, isBot: gameMode === 'bot' && i > 0, inJail: false, jailTurns: 0 })),
+                properties: {},
+                bank: { houses: 32, hotels: 12 },
+                currentTurn: 0,
+                phase: 'ROLL',
+                dice: [1, 1]
+              });
+              setDoublesCount(0);
+              setActiveCard(null);
+              setSelectedTile(null);
+              setFloatingLogs([]);
+              setTradeState(null);
+              setAuctionState(null);
               setAppState('game');
             }}
             className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-2xl shadow-xl flex items-center justify-center gap-3 hover:bg-blue-700 active:scale-95 transition-all"
@@ -760,8 +877,8 @@ export default function App() {
       `}</style>
 
       {/* QUIT BUTTON */}
-      <button onClick={() => setAppState('setup')} className="absolute top-4 right-4 z-[120] bg-white/90 hover:bg-red-500 hover:text-white transition-all p-3 rounded-full shadow-lg flex items-center gap-2 group border border-slate-200">
-        <LogOut size={20} /><span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all text-sm font-black px-0 group-hover:px-1 uppercase tracking-tighter">Quit Game</span>
+      <button onClick={() => setAppState('setup')} className="absolute top-4 left-1/2 -translate-x-1/2 z-[120] bg-white/90 hover:bg-red-500 hover:text-white transition-all p-3 sm:p-4 rounded-full shadow-lg flex items-center gap-2 group border border-slate-200">
+        <LogOut size={20} /><span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all text-sm font-black px-0 group-hover:px-1 uppercase tracking-tighter">Quit</span>
       </button>
 
       {/* TOP PLAYERS */}
@@ -816,62 +933,103 @@ export default function App() {
             <h1 className="text-[70px] sm:text-[140px] font-black text-slate-800 rotate-[-45deg] tracking-tighter">VYAPARI</h1>
           </div>
 
-          <div className="z-50 w-full flex flex-col items-center justify-center flex-1">
+          <div className="z-50 w-full h-full flex flex-col items-center justify-center">
             {/* 5 BUTTONS INSIDE THE BOARD */}
-            <div className="grid grid-cols-5 gap-3 mb-6 w-full max-w-[500px]">
-              <button onClick={() => addLog("Sell: Choose property")} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-red-50 hover:border-red-200">
-                <ShoppingCart size={22} className="text-red-500 group-active:scale-90" />
-                <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Sell</span>
+            <div className="absolute top-[8%] sm:top-[6%] left-1/2 -translate-x-1/2 w-[85%] max-w-[450px] grid grid-cols-5 gap-1 sm:gap-3">
+              <button onClick={() => addLog("Sell: Choose property")} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-red-50 hover:border-red-200">
+                <ShoppingCart className="w-4 h-4 sm:w-6 sm:h-6 text-red-500 group-active:scale-90" />
+                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Sell</span>
               </button>
-              <button onClick={() => setPhase('MANAGE')} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-green-50 hover:border-green-200">
-                <Building size={22} className="text-green-500 group-active:scale-90" />
-                <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Build</span>
+              <button onClick={() => setPhase('MANAGE')} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-green-50 hover:border-green-200">
+                <Building className="w-4 h-4 sm:w-6 sm:h-6 text-green-500 group-active:scale-90" />
+                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Build</span>
               </button>
               <button onClick={() => {
                 const targets = players.filter(p => p.id !== activePlayer.id && !p.isBot);
                 if (targets.length > 0) setTradeState({ targetPlayerId: targets[0].id, myOffer: { cash: 0, properties: [] }, theirOffer: { cash: 0, properties: [] } });
                 else addLog("No trade partners.");
-              }} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-blue-50 hover:border-blue-200">
-                <Repeat size={22} className="text-blue-500 group-active:scale-90" />
-                <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Trade</span>
+              }} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-blue-50 hover:border-blue-200">
+                <Repeat className="w-4 h-4 sm:w-6 sm:h-6 text-blue-500 group-active:scale-90" />
+                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Trade</span>
               </button>
-              <button onClick={() => addLog("Load: Game data")} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-slate-50 hover:border-slate-400">
-                <Save size={22} className="text-slate-600 group-active:scale-90" />
-                <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Loan</span>
+              <button onClick={() => addLog("Load: Game data")} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-slate-50 hover:border-slate-400">
+                <Save className="w-4 h-4 sm:w-6 sm:h-6 text-slate-600 group-active:scale-90" />
+                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Load</span>
               </button>
-              <button onClick={() => setPhase('MANAGE')} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-orange-50 hover:border-orange-200">
-                <RefreshCw size={22} className="text-orange-500 group-active:scale-90" />
-                <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Mortgage</span>
+              <button onClick={() => setPhase('MANAGE')} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-orange-50 hover:border-orange-200">
+                <RefreshCw className="w-4 h-4 sm:w-6 sm:h-6 text-orange-500 group-active:scale-90" />
+                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Mortgage</span>
               </button>
             </div>
 
             {/* ACTION MODAL - INSIDE BOARD */}
-            {phase.startsWith('ACTION') && activePlayer.position !== undefined && (
-              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3 sm:p-6 shadow-2xl border-[2px] border-blue-500 w-full max-w-[240px] animate-in zoom-in-95 duration-200">
-                <p className="text-center text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-2">Decision Required</p>
+            {(phase.startsWith('ACTION') || (phase === 'ROLL' && activePlayer.inJail && !activePlayer.isBot)) && activePlayer.position !== undefined && (
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 mt-16 shadow-2xl border-[2px] border-blue-500 w-full max-w-[220px] scale-90 sm:scale-100 animate-in zoom-in-95 duration-200">
+                <p className="text-center text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-1">Decision Required</p>
+                
+                {phase === 'ROLL' && activePlayer.inJail && (
+                  <>
+                    <h2 className="text-lg font-black text-center mb-2 text-slate-800">In Jail</h2>
+                    <p className="text-[10px] text-center text-slate-500 mb-3 font-bold uppercase">{3 - (activePlayer.jailTurns || 0)} attempts left</p>
+                    <div className="space-y-1.5 flex flex-col items-stretch max-w-[150px] mx-auto">
+                        <button onClick={rollDice} disabled={isRolling} className="w-full bg-blue-500 text-white py-2 rounded-lg font-black text-[10px] shadow-sm active:scale-95 transition-all">🎲 Roll Doubles</button>
+                        <button onClick={payJailFine} disabled={activePlayer.money < 500} className={`w-full text-white py-2 rounded-lg font-black text-[10px] shadow-sm transition-all ${activePlayer.money >= 500 ? 'bg-red-500 active:scale-95 cursor-pointer' : 'bg-slate-400 opacity-50 cursor-not-allowed'}`}>💸 Pay ₹500</button>
+                        <button onClick={useJailCard} disabled={!activePlayer.getOutOfJailFree} className={`w-full text-white py-2 rounded-lg font-black text-[10px] shadow-sm transition-all ${activePlayer.getOutOfJailFree > 0 ? 'bg-orange-500 active:scale-95 cursor-pointer' : 'bg-slate-400 opacity-50 cursor-not-allowed'}`}>🎫 Use Card</button>
+                    </div>
+                  </>
+                )}
+
                 {phase === 'ACTION_BUY' && (
                   <>
-                    <h2 className="text-lg sm:text-2xl font-black text-center mb-5 truncate">{BOARD_DATA[activePlayer.position].name}</h2>
-                    <div className="bg-blue-50 p-3 sm:p-4 rounded-2xl text-center border-2 border-blue-100 mb-5">
+                    <h2 className="text-lg font-black text-center mb-2 truncate">{BOARD_DATA[activePlayer.position].name}</h2>
+                    <div className="bg-blue-50 p-2 rounded-2xl text-center border-2 border-blue-100 mb-3">
                       <span className="text-slate-500 text-xs uppercase font-bold">Asking Price</span>
-                      <p className="text-2xl sm:text-4xl font-black text-blue-600">₹{BOARD_DATA[activePlayer.position].price}</p>
+                      <p className="text-xl font-black text-blue-600">₹{BOARD_DATA[activePlayer.position].price}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={buyProperty} className="flex-1 bg-green-500 text-white py-2 sm:py-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1 shadow-lg shadow-green-200 active:scale-95"><Check size={16} /> BUY</button>
-                      <button onClick={() => setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE')} className="flex-1 bg-red-500 text-white py-2 sm:py-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1 shadow-lg shadow-red-200 active:scale-95"><X size={16} /> PASS</button>
+                      <button onClick={buyProperty} className="flex-1 bg-green-500 text-white py-2 rounded-xl font-black text-[10px] flex items-center justify-center gap-1 shadow-lg shadow-green-200 active:scale-95"><Check size={14} /> BUY</button>
+                      <button onClick={startAuction} className="flex-1 bg-purple-500 text-white py-2 rounded-xl font-black text-[10px] flex items-center justify-center gap-1 shadow-lg shadow-purple-200 active:scale-95">AUCTION</button>
                     </div>
                   </>
                 )}
-                {phase === 'ACTION_PAY' && properties[BOARD_DATA[activePlayer.position].id] && (
-                  <>
-                    <div className="bg-red-50 p-4 sm:p-6 rounded-2xl text-center border-2 border-red-100 mb-5">
-                      <AlertCircle className="mx-auto text-red-500 mb-2" />
-                      <p className="text-red-900 font-bold text-xs uppercase">Pay {players.find(p => p.id === properties[BOARD_DATA[activePlayer.position].id].ownerId)?.name}</p>
-                      <p className="text-3xl sm:text-5xl font-black text-red-600">₹{calculateRent(BOARD_DATA[activePlayer.position], properties[BOARD_DATA[activePlayer.position].id])}</p>
+
+                {phase === 'ACTION_AUCTION' && auctionState && (
+                  <div className="w-full text-left">
+                    <h2 className="text-[14px] font-black mb-2 uppercase text-center text-purple-900 border-b-2 border-purple-200 pb-1 truncate">{BOARD_DATA[auctionState.propertyId].name}</h2>
+                    <div className="bg-purple-50 p-2 rounded-lg text-center mb-3">
+                         <span className="text-[9px] uppercase font-bold text-slate-500">Highest Bid</span>
+                         <div className="text-xl font-black text-purple-600">₹{auctionState.highestBid}</div>
+                         <div className="text-[10px] font-bold text-slate-600 truncate">{auctionState.highestBidderId ? players.find(p=>p.id===auctionState.highestBidderId)?.name : 'None'}</div>
                     </div>
-                    <button onClick={payRentAction} className="w-full bg-red-600 text-white py-4 rounded-xl font-black text-lg shadow-xl active:scale-95 transition-all">PAY RENT NOW</button>
-                  </>
+                    
+                    <div className="bg-white border-2 border-slate-100 p-2 rounded-lg mb-3 text-center shadow-inner">
+                         <span className="text-[9px] uppercase font-bold text-slate-400">Current Bidder</span>
+                         <div className="font-black text-sm text-slate-800 truncate">{players.find(p=>p.id===auctionState.bidders[auctionState.currentBidderIndex])?.name}</div>
+                         <div className="text-[10px] font-bold text-green-600 mt-0.5">Wallet: ₹{players.find(p=>p.id===auctionState.bidders[auctionState.currentBidderIndex])?.money}</div>
+                    </div>
+
+                    <div className="space-y-2">
+                        {(!players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.isBot) ? (
+                            <>
+                            <div className="flex flex-col gap-2">
+                               <div className="flex bg-slate-50 border-2 border-slate-200 rounded-lg overflow-hidden relative">
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">₹</span>
+                                  <input type="number" step="10" min={Math.max(10, auctionState.highestBid + 10)} max={players.find(p=>p.id===auctionState.bidders[auctionState.currentBidderIndex])?.money || 0} value={auctionState.targetBid} onChange={e => setAuctionState({...auctionState, targetBid: parseInt(e.target.value) || 0})} className="w-full bg-transparent p-1.5 pl-6 font-black text-slate-800 text-left text-sm outline-none" />
+                               </div>
+                               <input type="range" step="10" min={Math.max(10, auctionState.highestBid + 10)} max={Math.max(Math.max(10, auctionState.highestBid + 10), players.find(p=>p.id===auctionState.bidders[auctionState.currentBidderIndex])?.money || 0)} value={Math.max(Math.max(10, auctionState.highestBid + 10), auctionState.targetBid)} onChange={e => setAuctionState({...auctionState, targetBid: parseInt(e.target.value) || 0})} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                            </div>
+                            <div className="flex gap-1.5 mt-2">
+                               <button onClick={() => placeBid()} className="flex-1 bg-green-500 text-white font-black text-[10px] py-2 sm:py-3 rounded-lg shadow-md uppercase active:scale-95 transition-all">Bid</button>
+                               <button onClick={foldAuction} className="flex-1 bg-red-500 text-white font-black text-[10px] py-2 sm:py-3 rounded-lg shadow-md uppercase active:scale-95 transition-all">Fold</button>
+                            </div>
+                            </>
+                        ) : (
+                            <div className="text-center font-bold text-slate-500 text-[10px] italic py-2 animate-pulse">Bot is thinking...</div>
+                        )}
+                    </div>
+                  </div>
                 )}
+
                 {phase === 'ACTION_CARD' && activeCard && (
                   <div className="text-center">
                     <div className="mb-5">{activeCard.type === 'CHANCE' ? <HelpCircle size={48} className="mx-auto text-purple-500 mb-2" /> : <Briefcase size={48} className="mx-auto text-blue-500 mb-2" />}<h2 className="font-black text-2xl uppercase">{activeCard.type}</h2></div>
@@ -883,11 +1041,11 @@ export default function App() {
             )}
 
             {phase === 'MANAGE' && !activePlayer.isBot && (
-              <div className="bg-slate-800/95 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl border-[3px] border-slate-600 w-full max-w-[320px] text-white text-center animate-in fade-in">
-                <Building size={40} className="mx-auto text-yellow-400 mb-3" />
-                <h3 className="font-black text-xl mb-2">Property Control</h3>
-                <p className="text-xs text-slate-300 mb-6 italic">Select owned property to Upgrade or Mortgage.</p>
-                <button onClick={endTurn} className="w-full bg-yellow-500 text-slate-900 py-4 rounded-xl font-black text-lg shadow-lg flex items-center justify-center gap-3 hover:bg-yellow-400 active:scale-95 transition-all">FINISH TURN <ArrowRight size={20} /></button>
+              <div className="bg-slate-800/95 backdrop-blur-md rounded-3xl p-6 mt-16 shadow-2xl border-[3px] border-slate-600 w-full max-w-[220px] scale-90 sm:scale-100 text-white text-center animate-in fade-in">
+                <Building size={40} className="mx-auto text-yellow-400 mb-2" />
+                <h3 className="font-black text-xl mb-1">Property Control</h3>
+                <p className="text-xs text-slate-300 mb-3 italic">Select owned property to Upgrade or Mortgage.</p>
+                <button onClick={endTurn} className="w-full bg-yellow-500 text-slate-900 py-2 rounded-xl font-black text-base shadow-lg flex items-center justify-center gap-3 hover:bg-yellow-400 active:scale-95 transition-all">FINISH TURN <ArrowRight size={20} /></button>
               </div>
             )}
           </div>
