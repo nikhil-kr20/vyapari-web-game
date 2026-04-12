@@ -19,9 +19,15 @@ const LoanScript = (url) => {
 
 // --- PAWN ICON COMPONENT ---
 const PawnIcon = ({ colorClass, size = "w-4 h-4 sm:w-6 sm:h-6", id }) => {
-  const textColor = colorClass ? colorClass.replace('bg-', 'text-') : 'text-slate-500';
+  const colorMap = {
+    'bg-red-500': '#ef4444',
+    'bg-blue-500': '#3b82f6',
+    'bg-green-500': '#22c55e',
+    'bg-yellow-500': '#eab308',
+  };
+  const fillColor = colorMap[colorClass] || '#334155';
   return (
-    <svg id={id} viewBox="0 0 24 24" fill="currentColor" className={`${size} ${textColor} drop-shadow-lg transition-colors duration-200`}>
+    <svg id={id} viewBox="0 0 24 24" fill="currentColor" style={{ color: fillColor }} className={`${size} drop-shadow-lg transition-colors duration-200`}>
       <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5.7.5 1.2 1.2 1.5 2h.5a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-1.2l-1.3 6h2.5a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h2.5l-1.3-6H6a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h.5c.3-.8.8-1.5 1.5-2-1.2-.7-2-2-2-3.5a4 4 0 0 1 4-4z" />
     </svg>
   );
@@ -785,6 +791,9 @@ export default function App() {
       const rollSum = dice[0] + dice[1];
       return ownedUtils === 2 ? rollSum * 100 : rollSum * 40;
     }
+    if (activePlayer.inJail && tile.type === 'property') {
+      return tile.rent[0];
+    }
     if (ownership.hotel) return tile.rent[5];
     if (ownership.houses > 0) return tile.rent[ownership.houses];
     const groupProps = BOARD_DATA.filter(t => t.group === tile.group);
@@ -1113,7 +1122,7 @@ export default function App() {
           </div>
           <button
             onClick={() => {
-              const colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500'];
+              const colors = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500'];
               setGameState({
                 players: Array.from({ length: playerCount }).map((_, i) => ({
                   id: i + 1,
@@ -1221,9 +1230,9 @@ export default function App() {
             <div key={tile.id} className="relative z-10 border-[0.5px] border-slate-800 flex flex-col items-center justify-center bg-white overflow-visible" style={style} onClick={() => setSelectedTile(tile)}>
               <div className={`absolute inset-0 flex flex-col items-center justify-start ${getTileOrientation(tile.id)}`}>
                 {colorClass && (
-                  <div className={`absolute top-0 left-0 w-full h-[15%] ${colorClass} border-b-[1.5px] border-slate-800 flex items-center justify-center gap-0.5`}>
+                  <div className={`absolute top-0 left-0 w-full h-[18%] ${colorClass} border-b-[1.5px] border-slate-800 flex items-center justify-center gap-0.5`}>
                     {propData?.houses > 0 && [...Array(propData.houses)].map((_, i) => <Home key={i} size={8} className="text-white fill-white" />)}
-                    {propData?.hotel && <Hotel size={12} className="text-white fill-red-500" />}
+                    {propData?.hotel && <Hotel size={14} className="text-black fill-black" />}
                   </div>
                 )}
                 <div className={`flex flex-col items-center justify-center w-full h-full ${colorClass ? 'pt-[22%]' : 'px-0.5'}`}>
