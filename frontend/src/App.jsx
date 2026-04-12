@@ -3,7 +3,7 @@ import {
   Dices, MapPin, Wallet, History, AlertCircle, X, Check, ArrowRight, Users,
   User, Bot, Play, Train, Lightbulb, Droplets, HelpCircle, Briefcase,
   Coins, Car, ShieldAlert, ArrowRightSquare, Home, Hotel, Building,
-  RefreshCw, LogOut, ShoppingCart, Repeat, Save, CreditCard, Minus, Plus
+  RefreshCw, LogOut, ShoppingCart, Repeat, Save, Minus, Plus
 } from 'lucide-react';
 
 // --- INJECT ANIMATION LIBRARIES ---
@@ -171,6 +171,9 @@ const BOARD_DATA = [
 
 const PARKING_BASE_BONUS = 500;
 const PARKING_MULTIPLIERS = [1, 1, 1, 2, 2, 3, 4];
+const LOAN_PROPERTY_WEIGHT = 0.7;
+const LOAN_BALANCE_WEIGHT = 0.3;
+const LOAN_RATE_PER_TURN = 0.05;
 
 const createParkingReward = () => {
   const multiplier = PARKING_MULTIPLIERS[Math.floor(Math.random() * PARKING_MULTIPLIERS.length)];
@@ -260,6 +263,8 @@ export default function App() {
   const [selectedTile, setSelectedTile] = useState(null);
   const [floatingLogs, setFloatingLogs] = useState([]);
   const [manageModal, setManageModal] = useState(false);
+  const [loanModal, setLoanModal] = useState(false);
+  const [loanDraft, setLoanDraft] = useState({ takeAmount: '', repayAmount: '' });
 
   useEffect(() => {
     LoanScript('https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js');
@@ -281,6 +286,118 @@ export default function App() {
   };
 
   const activePlayer = players[turn] || {};
+
+  const getPlayerPropertyWorth = (playerId) => {
+    return Object.entries(properties).reduce((sum, [propId, propState]) => {
+      if (propState.ownerId !== playerId || propState.mortgaged) return sum;
+      const tile = BOARD_DATA[Number(propId)];
+      if (!tile?.price) return sum;
+      return sum + tile.price;
+    }, 0);
+  };
+
+  const getOutstandingLoan = (player) => Math.floor(player?.loan?.principal || 0);
+
+  const getLoanLimit = (player) => {
+    if (!player?.id) return 0;
+    const propertyWorth = getPlayerPropertyWorth(player.id);
+    const weighted = (propertyWorth * LOAN_PROPERTY_WEIGHT) + (player.money * LOAN_BALANCE_WEIGHT);
+    return Math.max(0, Math.floor(weighted));
+  };
+
+  const getAvailableLoan = (player) => {
+    const limit = getLoanLimit(player);
+    const outstanding = getOutstandingLoan(player);
+    return Math.max(0, limit - outstanding);
+  };
+
+  const outstandingLoan = getOutstandingLoan(activePlayer);
+  const availableLoanAmount = getAvailableLoan(activePlayer);
+  const takeSliderValue = Math.min(availableLoanAmount, Math.max(0, parseInt(loanDraft.takeAmount, 10) || 0));
+  const projectedOutstandingLoan = outstandingLoan + takeSliderValue;
+  const projectedMoneyAfterTake = (activePlayer.money || 0) + takeSliderValue;
+  const maxRepayAmount = Math.min(projectedMoneyAfterTake, projectedOutstandingLoan);
+  const repaySliderValue = Math.min(maxRepayAmount, Math.max(0, parseInt(loanDraft.repayAmount, 10) || 0));
+  const nextTurnLoanTotal = Math.ceil(projectedOutstandingLoan * (1 + LOAN_RATE_PER_TURN));
+  const nextTurnInterest = Math.max(0, nextTurnLoanTotal - projectedOutstandingLoan);
+
+  const accrueLoanInterestForRoll = (playerId) => {
+    const playerRecord = players.find(p => p.id === playerId);
+    const principal = playerRecord?.loan?.principal || 0;
+    if (principal <= 0) return;
+
+    const nextPrincipal = Math.ceil(principal * (1 + LOAN_RATE_PER_TURN));
+    const interestAdded = nextPrincipal - principal;
+
+    setPlayers(prev => {
+      const up = [...prev];
+      const idx = up.findIndex(p => p.id === playerId);
+      if (idx === -1) return up;
+      const currentLoan = up[idx].loan || { principal: 0, ratePerTurn: LOAN_RATE_PER_TURN, turnsAccrued: 0 };
+      up[idx].loan = {
+        ...currentLoan,
+        principal: nextPrincipal,
+        ratePerTurn: LOAN_RATE_PER_TURN,
+        turnsAccrued: (currentLoan.turnsAccrued || 0) + 1,
+      };
+      return up;
+    });
+
+    addLog(`Loan +Rs. ${interestAdded} interest`, playerId);
+  };
+
+  const takeLoan = () => {
+    const amount = Math.max(0, parseInt(loanDraft.takeAmount, 10) || 0);
+    if (!amount) return addLog('Enter a valid amount', activePlayer.id);
+
+    const available = getAvailableLoan(activePlayer);
+    if (amount > available) return addLog(`Max loan: Rs. ${available}`, activePlayer.id);
+
+    setPlayers(prev => {
+      const up = [...prev];
+      const idx = up.findIndex(p => p.id === activePlayer.id);
+      if (idx === -1) return up;
+      const currentLoan = up[idx].loan || { principal: 0, ratePerTurn: LOAN_RATE_PER_TURN, turnsAccrued: 0 };
+      up[idx].money += amount;
+      up[idx].loan = {
+        ...currentLoan,
+        principal: (currentLoan.principal || 0) + amount,
+        ratePerTurn: LOAN_RATE_PER_TURN,
+      };
+      return up;
+    });
+
+    setLoanDraft(prev => ({ ...prev, takeAmount: '' }));
+    addLog(`Loan taken Rs. ${amount}`, activePlayer.id);
+  };
+
+  const repayLoan = () => {
+    const amount = Math.max(0, parseInt(loanDraft.repayAmount, 10) || 0);
+    if (!amount) return addLog('Enter a valid amount', activePlayer.id);
+
+    const outstanding = getOutstandingLoan(activePlayer);
+    if (outstanding <= 0) return addLog('No active loan', activePlayer.id);
+    if (activePlayer.money < amount) return addLog('Not enough money', activePlayer.id);
+
+    const payment = Math.min(amount, outstanding);
+
+    setPlayers(prev => {
+      const up = [...prev];
+      const idx = up.findIndex(p => p.id === activePlayer.id);
+      if (idx === -1) return up;
+      const currentLoan = up[idx].loan || { principal: 0, ratePerTurn: LOAN_RATE_PER_TURN, turnsAccrued: 0 };
+      up[idx].money -= payment;
+      up[idx].loan = {
+        ...currentLoan,
+        principal: Math.max(0, (currentLoan.principal || 0) - payment),
+        ratePerTurn: LOAN_RATE_PER_TURN,
+      };
+      return up;
+    });
+
+    setLoanDraft(prev => ({ ...prev, repayAmount: '' }));
+    addLog(`Loan repaid Rs. ${payment}`, activePlayer.id);
+  };
 
   // --- BANKRUPTCY CHECK ---
   const checkBankruptcy = (playerId, newMoney) => {
@@ -417,6 +534,7 @@ export default function App() {
     if (isRolling || phase !== 'ROLL') return;
     setIsRolling(true);
     setTimeout(() => {
+      accrueLoanInterestForRoll(activePlayer.id);
       const d1 = Math.floor(Math.random() * 6) + 1;
       const d2 = Math.floor(Math.random() * 6) + 1;
       const isDouble = d1 === d2;
@@ -914,7 +1032,18 @@ export default function App() {
             onClick={() => {
               const colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500'];
               setGameState({
-                players: Array.from({ length: playerCount }).map((_, i) => ({ id: i + 1, name: gameMode === 'bot' && i > 0 ? `Bot ${i + 1}` : `Player ${i + 1}`, color: colors[i], money: startingMoney, position: 0, isBot: gameMode === 'bot' && i > 0, inJail: false, jailTurns: 0 })),
+                players: Array.from({ length: playerCount }).map((_, i) => ({
+                  id: i + 1,
+                  name: gameMode === 'bot' && i > 0 ? `Bot ${i + 1}` : `Player ${i + 1}`,
+                  color: colors[i],
+                  money: startingMoney,
+                  position: 0,
+                  isBot: gameMode === 'bot' && i > 0,
+                  inJail: false,
+                  jailTurns: 0,
+                  getOutOfJailFree: 0,
+                  loan: { principal: 0, ratePerTurn: LOAN_RATE_PER_TURN, turnsAccrued: 0 }
+                })),
                 properties: {},
                 bank: { houses: 32, hotels: 12, parking: createParkingReward() },
                 currentTurn: 0,
@@ -928,6 +1057,8 @@ export default function App() {
               setTradeState(null);
               setAuctionState(null);
               setManageModal(false);
+              setLoanModal(false);
+              setLoanDraft({ takeAmount: '', repayAmount: '' });
               setAppState('game');
             }}
             className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-2xl shadow-xl flex items-center justify-center gap-3 hover:bg-blue-700 active:scale-95 transition-all"
@@ -1056,7 +1187,7 @@ export default function App() {
                 <Repeat className="w-4 h-4 sm:w-6 sm:h-6 text-blue-500 group-active:scale-90" />
                 <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Trade</span>
               </button>
-              <button onClick={() => addLog("Loan: Game data")} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-slate-50 hover:border-slate-400">
+              <button onClick={() => activePlayer.isBot ? addLog('Wait for your turn') : (setLoanDraft({ takeAmount: '0', repayAmount: '0' }), setLoanModal(true))} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-slate-50 hover:border-slate-400">
                 <Save className="w-4 h-4 sm:w-6 sm:h-6 text-slate-600 group-active:scale-90" />
                 <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Loan</span>
               </button>
@@ -1141,10 +1272,48 @@ export default function App() {
             )}
 
             {phase === 'MANAGE' && !activePlayer.isBot && (
-              <div className="bg-slate-800/95 backdrop-blur-md rounded-3xl p-6 mt-16 shadow-2xl border-[3px] border-slate-600 w-full max-w-[220px] scale-90 sm:scale-100 text-white text-center animate-in fade-in">
+              <div className="bg-slate-800/95 backdrop-blur-md rounded-3xl p-5 mt-16 shadow-2xl border-[3px] border-slate-600 w-full max-w-[320px] scale-90 sm:scale-100 text-white text-center animate-in fade-in">
                 <Building size={40} className="mx-auto text-yellow-400 mb-2" />
                 <h3 className="font-black text-xl mb-1">Property Control</h3>
                 <p className="text-xs text-slate-300 mb-3 italic">Select owned property to Upgrade or Mortgage.</p>
+                {false && (<div className="rounded-2xl bg-slate-700/70 p-3 mb-3 text-left">
+                  <div className="flex items-center gap-2 text-yellow-300 font-black text-xs uppercase tracking-wide mb-2">
+                    Bank Loan
+                  </div>
+                  <div className="text-[11px] font-bold text-slate-200 space-y-1 mb-2">
+                    <div className="flex justify-between"><span>Property Worth</span><span>Rs. {getPlayerPropertyWorth(activePlayer.id)}</span></div>
+                    <div className="flex justify-between"><span>Loan Limit (70/30)</span><span>Rs. {getLoanLimit(activePlayer)}</span></div>
+                    <div className="flex justify-between"><span>Outstanding</span><span>Rs. {getOutstandingLoan(activePlayer)}</span></div>
+                    <div className="flex justify-between"><span>Available</span><span>Rs. {getAvailableLoan(activePlayer)}</span></div>
+                    <div className="flex justify-between"><span>Interest / Turn</span><span>{Math.round(LOAN_RATE_PER_TURN * 100)}%</span></div>
+                  </div>
+
+                  <div className="flex gap-1 mb-1.5">
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={loanDraft.takeAmount}
+                      onChange={(e) => setLoanDraft(prev => ({ ...prev, takeAmount: e.target.value }))}
+                      className="flex-1 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-900"
+                      placeholder="Take amount"
+                    />
+                    <button onClick={takeLoan} className="bg-green-500 px-2 py-1 rounded-lg text-[11px] font-black">Take</button>
+                  </div>
+
+                  <div className="flex gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={loanDraft.repayAmount}
+                      onChange={(e) => setLoanDraft(prev => ({ ...prev, repayAmount: e.target.value }))}
+                      className="flex-1 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-900"
+                      placeholder="Repay amount"
+                    />
+                    <button onClick={repayLoan} className="bg-blue-500 px-2 py-1 rounded-lg text-[11px] font-black">Repay</button>
+                  </div>
+                </div>)}
                 <button onClick={endTurn} className="w-full bg-yellow-500 text-slate-900 py-2 rounded-xl font-black text-base shadow-lg flex items-center justify-center gap-3 hover:bg-yellow-400 active:scale-95 transition-all">FINISH TURN <ArrowRight size={20} /></button>
               </div>
             )}
@@ -1308,6 +1477,93 @@ export default function App() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* BANK LOAN MODAL */}
+      {loanModal && (
+        <div className="fixed inset-0 z-[131] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-[420px] shadow-2xl flex flex-col p-6 animate-in zoom-in-95">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-black uppercase text-slate-900 border-b-4 border-yellow-400 pb-1">Bank Loan</h2>
+              <button onClick={() => setLoanModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500"><X size={22} /></button>
+            </div>
+
+            {false && (<div className="rounded-2xl bg-slate-100 p-4 mb-4 text-[12px] font-bold text-slate-700 space-y-2">
+              <div className="flex justify-between"><span>Property Worth</span><span>Rs. {getPlayerPropertyWorth(activePlayer.id)}</span></div>
+              <div className="flex justify-between"><span>Loan Limit (70/30)</span><span>Rs. {getLoanLimit(activePlayer)}</span></div>
+              <div className="flex justify-between"><span>Outstanding</span><span>Rs. {getOutstandingLoan(activePlayer)}</span></div>
+              <div className="flex justify-between"><span>Available</span><span>Rs. {getAvailableLoan(activePlayer)}</span></div>
+              <div className="flex justify-between"><span>Interest / Your Turn</span><span>{Math.round(LOAN_RATE_PER_TURN * 100)}%</span></div>
+            </div>)}
+
+            {false && (<div className="flex gap-2 mb-2">
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={loanDraft.takeAmount}
+                onChange={(e) => setLoanDraft(prev => ({ ...prev, takeAmount: e.target.value }))}
+                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold text-slate-900"
+                placeholder="Enter take amount"
+              />
+              <button onClick={takeLoan} className="bg-green-600 text-white px-4 rounded-lg text-sm font-black">Take</button>
+            </div>)}
+
+            {false && (<div className="flex gap-2 mb-4">
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={loanDraft.repayAmount}
+                onChange={(e) => setLoanDraft(prev => ({ ...prev, repayAmount: e.target.value }))}
+                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold text-slate-900"
+                placeholder="Enter repay amount"
+              />
+              <button onClick={repayLoan} className="bg-blue-600 text-white px-4 rounded-lg text-sm font-black">Repay</button>
+            </div>)}
+
+            <div className="rounded-2xl bg-slate-100 p-4 mb-4 text-[12px] font-bold text-slate-700 space-y-2">
+              <div className="flex justify-between"><span>Rate of Interest</span><span>{Math.round(LOAN_RATE_PER_TURN * 100)}% / turn</span></div>
+              <div className="flex justify-between"><span>Total Amount (Next Turn)</span><span>Rs.{nextTurnLoanTotal}</span></div>
+            </div>
+
+            <div className="mb-3 rounded-xl border border-slate-200 p-3">
+              <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
+                <span>Take Amount</span>
+                <span>Rs.{takeSliderValue} / Rs.{availableLoanAmount}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max={availableLoanAmount}
+                step="1"
+                value={takeSliderValue}
+                onChange={(e) => setLoanDraft(prev => ({ ...prev, takeAmount: e.target.value }))}
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+              />
+              <button onClick={takeLoan} disabled={takeSliderValue <= 0} className="mt-3 w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-black disabled:opacity-40 disabled:cursor-not-allowed">Take</button>
+            </div>
+
+            <div className="mb-4 rounded-xl border border-slate-200 p-3">
+              <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
+                <span>Pay Amount</span>
+                <span>Rs.{repaySliderValue} / Rs.{maxRepayAmount}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max={maxRepayAmount}
+                step="1"
+                value={repaySliderValue}
+                onChange={(e) => setLoanDraft(prev => ({ ...prev, repayAmount: e.target.value }))}
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <button onClick={repayLoan} disabled={repaySliderValue <= 0} className="mt-3 w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-black disabled:opacity-40 disabled:cursor-not-allowed">Pay</button>
+            </div>
+
+            <button onClick={() => setLoanModal(false)} className="w-full bg-slate-900 text-white py-3 rounded-xl font-black uppercase shadow-lg">Done</button>
           </div>
         </div>
       )}
