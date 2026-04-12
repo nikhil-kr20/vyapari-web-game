@@ -147,7 +147,7 @@ const BOARD_DATA = [
   { id: 17, type: 'chest', name: 'Community Chest', icon: '📦' },
   { id: 18, type: 'property', name: 'Bhopal', group: 'ORANGE', price: 1800, houseCost: 1000, mortgage: 900, rent: [140, 700, 2000, 5500, 7500, 9500] },
   { id: 19, type: 'property', name: 'Lucknow', group: 'ORANGE', price: 2000, houseCost: 1000, mortgage: 1000, rent: [160, 800, 2200, 6000, 8000, 10000] },
-  { id: 20, type: 'corner', name: 'Free Parking', icon: '🅿️' },
+  { id: 20, type: 'corner', name: '', icon: '🅿️' },
   { id: 21, type: 'property', name: 'Jaipur', group: 'RED', price: 2200, houseCost: 1500, mortgage: 1100, rent: [180, 900, 2500, 7000, 8750, 10500] },
   { id: 22, type: 'chance', name: 'Chance', icon: '❓' },
   { id: 23, type: 'property', name: 'Hyderabad', group: 'RED', price: 2200, houseCost: 1500, mortgage: 1100, rent: [180, 900, 2500, 7000, 8750, 10500] },
@@ -248,6 +248,7 @@ export default function App() {
 
   // Trade State
   const [tradeState, setTradeState] = useState(null);
+  const [selectorTarget, setSelectorTarget] = useState(null);
 
   // Auction State
   const [auctionState, setAuctionState] = useState(null);
@@ -1026,11 +1027,7 @@ export default function App() {
             <div className="absolute top-[8%] sm:top-[6%] left-1/2 -translate-x-1/2 w-[85%] max-w-[450px] grid grid-cols-5 gap-1 sm:gap-3">
               <button onClick={() => setManageModal(true)} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-red-50 hover:border-red-200">
                 <ShoppingCart className="w-4 h-4 sm:w-6 sm:h-6 text-red-500 group-active:scale-90" />
-                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Sell</span>
-              </button>
-              <button onClick={() => setManageModal(true)} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-green-50 hover:border-green-200">
-                <Building className="w-4 h-4 sm:w-6 sm:h-6 text-green-500 group-active:scale-90" />
-                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Build</span>
+                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Manage</span>
               </button>
               <button onClick={() => {
                 const targets = players.filter(p => p.id !== activePlayer.id && !p.isBot);
@@ -1043,10 +1040,6 @@ export default function App() {
               <button onClick={() => addLog("Loan: Game data")} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-slate-50 hover:border-slate-400">
                 <Save className="w-4 h-4 sm:w-6 sm:h-6 text-slate-600 group-active:scale-90" />
                 <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Loan</span>
-              </button>
-              <button onClick={() => setManageModal(true)} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-orange-50 hover:border-orange-200">
-                <RefreshCw className="w-4 h-4 sm:w-6 sm:h-6 text-orange-500 group-active:scale-90" />
-                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Mortgage</span>
               </button>
             </div>
 
@@ -1158,14 +1151,14 @@ export default function App() {
           <div className="bg-white rounded-3xl w-full max-w-[600px] shadow-2xl flex flex-col p-6 animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black uppercase text-blue-900 border-b-4 border-blue-500 pb-2">Trade Negotiation</h2>
-              <button onClick={() => setTradeState(null)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500"><X size={24} /></button>
+              <button onClick={() => { setTradeState(null); setSelectorTarget(null); }} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500"><X size={24} /></button>
             </div>
 
             <div className="mb-4">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Trade With:</label>
               <select
                 value={tradeState.targetPlayerId || ''}
-                onChange={e => setTradeState({ ...tradeState, targetPlayerId: parseInt(e.target.value) })}
+                onChange={e => setTradeState({ ...tradeState, targetPlayerId: parseInt(e.target.value), theirOffer: { cash: tradeState.theirOffer.cash, properties: [] } })}
                 className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-800"
               >
                 {players.filter(p => p.id !== activePlayer.id && !p.isBot).map(p => (
@@ -1184,14 +1177,15 @@ export default function App() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-blue-600 block mb-1">Properties</label>
-                  {Object.keys(properties).filter(k => properties[k].ownerId === activePlayer.id).map(pid => (
-                    <button key={pid} onClick={() => {
-                      const props = tradeState.myOffer.properties.includes(parseInt(pid)) ? tradeState.myOffer.properties.filter(id => id !== parseInt(pid)) : [...tradeState.myOffer.properties, parseInt(pid)];
-                      setTradeState({ ...tradeState, myOffer: { ...tradeState.myOffer, properties: props } });
-                    }} className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all ${tradeState.myOffer.properties.includes(parseInt(pid)) ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>
-                      {BOARD_DATA[pid].name}
-                    </button>
-                  ))}
+                  <button onClick={() => setSelectorTarget('my')} className="w-full bg-white border-2 border-blue-200 text-blue-600 py-2 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-2 shadow-sm hover:bg-blue-100">
+                    <ShoppingCart size={14} /> Select
+                  </button>
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {tradeState.myOffer.properties.map(pid => (
+                      <span key={pid} className="bg-blue-600 text-white px-2 py-1 rounded text-[9px] font-black">{BOARD_DATA[pid].name}</span>
+                    ))}
+                    {tradeState.myOffer.properties.length === 0 && <span className="text-[10px] text-slate-400 font-bold">No properties selected</span>}
+                  </div>
                 </div>
               </div>
               {/* THEIR OFFER */}
@@ -1203,14 +1197,15 @@ export default function App() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-orange-600 block mb-1">Properties</label>
-                  {Object.keys(properties).filter(k => properties[k].ownerId === tradeState.targetPlayerId).map(pid => (
-                    <button key={pid} onClick={() => {
-                      const props = tradeState.theirOffer.properties.includes(parseInt(pid)) ? tradeState.theirOffer.properties.filter(id => id !== parseInt(pid)) : [...tradeState.theirOffer.properties, parseInt(pid)];
-                      setTradeState({ ...tradeState, theirOffer: { ...tradeState.theirOffer, properties: props } });
-                    }} className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all ${tradeState.theirOffer.properties.includes(parseInt(pid)) ? 'bg-orange-500 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>
-                      {BOARD_DATA[pid].name}
-                    </button>
-                  ))}
+                  <button onClick={() => setSelectorTarget('their')} className="w-full bg-white border-2 border-orange-200 text-orange-600 py-2 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-2 shadow-sm hover:bg-orange-100">
+                    <ShoppingCart size={14} /> Select
+                  </button>
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {tradeState.theirOffer.properties.map(pid => (
+                      <span key={pid} className="bg-orange-500 text-white px-2 py-1 rounded text-[9px] font-black">{BOARD_DATA[pid].name}</span>
+                    ))}
+                    {tradeState.theirOffer.properties.length === 0 && <span className="text-[10px] text-slate-400 font-bold">No properties selected</span>}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1218,6 +1213,39 @@ export default function App() {
             <button onClick={executeTrade} className="w-full bg-green-500 py-4 rounded-xl text-white font-black text-xl shadow-lg hover:bg-green-600 active:scale-95 transition-all flex items-center justify-center gap-2">
               <Check size={24} /> CONFIRM TRADE
             </button>
+          </div>
+        </div>
+      )}
+
+      {selectorTarget && tradeState && (
+        <div className="fixed inset-0 z-[140] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-[400px] shadow-2xl p-6 animate-in zoom-in-95">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-black uppercase text-slate-800 tracking-wider">Select Property</h3>
+              <X className="cursor-pointer text-slate-400" onClick={() => setSelectorTarget(null)} />
+            </div>
+            <div className="max-h-[300px] overflow-y-auto grid grid-cols-2 gap-2">
+              {Object.keys(properties).filter(k => properties[k].ownerId === (selectorTarget === 'my' ? activePlayer.id : tradeState.targetPlayerId)).map(pid => {
+                const propertyId = parseInt(pid);
+                const selectedList = selectorTarget === 'my' ? tradeState.myOffer.properties : tradeState.theirOffer.properties;
+                const isSelected = selectedList.includes(propertyId);
+                return (
+                  <button key={pid} onClick={() => {
+                    const targetKey = selectorTarget === 'my' ? 'myOffer' : 'theirOffer';
+                    const currentProps = tradeState[targetKey].properties;
+                    const nextProps = isSelected ? currentProps.filter(id => id !== propertyId) : [...currentProps, propertyId];
+                    setTradeState({ ...tradeState, [targetKey]: { ...tradeState[targetKey], properties: nextProps } });
+                  }} className={`text-left p-3 rounded-xl font-black transition-all border-2 text-[10px] sm:text-xs min-h-[60px] flex items-center justify-between ${isSelected ? 'bg-blue-600 text-white border-blue-400 shadow-lg' : 'bg-slate-50 border-slate-100'}`}>
+                    <span className="truncate pr-1">{BOARD_DATA[propertyId].name}</span>
+                    {isSelected && <Check size={14} className="shrink-0" />}
+                  </button>
+                );
+              })}
+              {Object.keys(properties).filter(k => properties[k].ownerId === (selectorTarget === 'my' ? activePlayer.id : tradeState.targetPlayerId)).length === 0 && (
+                <div className="col-span-2 text-center text-slate-400 font-bold py-8">No properties.</div>
+              )}
+            </div>
+            <button onClick={() => setSelectorTarget(null)} className="w-full bg-slate-900 text-white py-4 rounded-xl font-black mt-6 uppercase shadow-xl">Done</button>
           </div>
         </div>
       )}
