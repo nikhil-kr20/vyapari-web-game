@@ -635,7 +635,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-50 text-slate-800 flex flex-col items-center justify-center p-2 sm:p-4 font-sans select-none overflow-hidden relative">
+    <div className="min-h-screen bg-blue-50 text-slate-800 flex flex-col items-center justify-center p-0 sm:p-4 font-sans select-none overflow-x-hidden relative">
       
       {/* GLOBAL KEYFRAME STYLE */}
       <style>{`
@@ -676,7 +676,7 @@ export default function App() {
       </div>
 
       {/* BOARD CONTAINER */}
-      <div className="relative w-full max-w-[min(100vw-16px,780px)] aspect-square bg-[#ceebd7] rounded-xl shadow-2xl border-[6px] border-slate-900 grid" style={{ gridTemplateColumns: 'repeat(11, minmax(0, 1fr))', gridTemplateRows: 'repeat(11, minmax(0, 1fr))' }}>
+      <div className="relative w-full max-w-[780px] aspect-square bg-[#ceebd7] rounded-none sm:rounded-xl shadow-2xl border-none grid" style={{ gridTemplateColumns: 'repeat(11, minmax(0, 1fr))', gridTemplateRows: 'repeat(11, minmax(0, 1fr))' }}>
         {BOARD_DATA.map((tile) => {
           const style = getGridStyle(tile.id);
           const isCorner = tile.id % 10 === 0;
@@ -694,10 +694,10 @@ export default function App() {
                      {propData?.hotel && <Hotel size={12} className="text-white fill-red-500"/>}
                   </div>
                 )}
-                <div className={`flex flex-col items-center justify-center w-full h-full ${colorClass ? 'pt-[16%]' : 'p-0.5'}`}>
-                  {!colorClass && <span className="text-lg sm:text-3xl mb-1">{tile.icon || (tile.type === 'station' ? '🚂' : '')}</span>}
-                  <span className="text-[0.35rem] sm:text-[0.7rem] font-black uppercase text-center leading-tight px-1">{tile.name}</span>
-                  {!isCorner && tile.price > 0 && <span className="text-[0.35rem] sm:text-[0.6rem] font-bold mt-auto pb-1 text-slate-600">₹{tile.price}</span>}
+                <div className={`flex flex-col items-center justify-center w-full h-full ${colorClass ? 'pt-[22%]' : 'px-0.5'}`}>
+                  {!colorClass && <span className="text-xs sm:text-2xl mb-0.5">{tile.icon || (tile.type === 'station' ? '🚂' : '')}</span>}
+                  <span className="text-[min(2vw,7.5px)] sm:text-[0.65rem] font-black uppercase text-center leading-[0.85] px-0.5 w-full break-all overflow-visible h-auto max-h-[45%] flex items-center justify-center">{tile.name}</span>
+                  {!isCorner && tile.price > 0 && <span className="text-[min(1.8vw,6.5px)] sm:text-[0.55rem] font-bold mt-auto pb-0.5 text-slate-600">₹{tile.price}</span>}
                 </div>
                 {propData?.mortgaged && (<div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-10 text-white font-black text-[8px] uppercase rotate-[-45deg]">Mortgaged</div>)}
               </div>
@@ -742,7 +742,7 @@ export default function App() {
 
             {/* ACTION MODAL - INSIDE BOARD */}
             {phase.startsWith('ACTION') && activePlayer.position !== undefined && (
-              <div className="bg-white/95 backdrop-blur-md rounded-3xl p-5 sm:p-8 shadow-2xl border-[3px] border-blue-500 w-full max-w-[320px] animate-in zoom-in-95 duration-200">
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-3 sm:p-6 shadow-2xl border-[2px] border-blue-500 w-full max-w-[240px] animate-in zoom-in-95 duration-200">
                 <p className="text-center text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-2">Decision Required</p>
                 {phase === 'ACTION_BUY' && (
                   <>
@@ -751,9 +751,9 @@ export default function App() {
                         <span className="text-slate-500 text-xs uppercase font-bold">Asking Price</span>
                         <p className="text-2xl sm:text-4xl font-black text-blue-600">₹{BOARD_DATA[activePlayer.position].price}</p>
                     </div>
-                    <div className="flex gap-4">
-                        <button onClick={buyProperty} className="flex-1 bg-green-500 text-white py-3 sm:py-4 rounded-xl font-black flex items-center justify-center gap-2 shadow-lg shadow-green-200 active:scale-95"><Check size={20}/> BUY</button>
-                        <button onClick={() => setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE')} className="flex-1 bg-red-500 text-white py-3 sm:py-4 rounded-xl font-black flex items-center justify-center gap-2 shadow-lg shadow-red-200 active:scale-95"><X size={20}/> PASS</button>
+                    <div className="flex gap-2">
+                        <button onClick={buyProperty} className="flex-1 bg-green-500 text-white py-2 sm:py-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1 shadow-lg shadow-green-200 active:scale-95"><Check size={16}/> BUY</button>
+                        <button onClick={() => setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE')} className="flex-1 bg-red-500 text-white py-2 sm:py-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1 shadow-lg shadow-red-200 active:scale-95"><X size={16}/> PASS</button>
                     </div>
                   </>
                 )}
@@ -803,8 +803,8 @@ export default function App() {
 
       {/* PROPERTY MANAGE / VIEW MODAL */}
       {selectedTile && (
-        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setSelectedTile(null)}>
-           <div className="bg-white rounded-2xl w-full max-w-[300px] shadow-2xl overflow-hidden border-[3px] border-slate-800 flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-md flex items-center justify-center p-2" onClick={() => setSelectedTile(null)}>
+           <div className="bg-white rounded-xl w-full max-w-[240px] shadow-2xl overflow-hidden border-[2px] border-slate-800 flex flex-col" onClick={e => e.stopPropagation()}>
               <div className={`${getGroupColor(selectedTile.group) || 'bg-slate-200'} p-4 text-center border-b-[3px] border-slate-800`}>
                  <h3 className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-1 ${['YELLOW', 'LIGHT_BLUE', 'PINK'].includes(selectedTile.group) ? 'text-slate-800' : 'text-white'}`}>Title Deed</h3>
                  <h1 className={`text-2xl font-black uppercase tracking-wider ${['YELLOW', 'LIGHT_BLUE', 'PINK'].includes(selectedTile.group) ? 'text-slate-800' : 'text-white'}`}>{selectedTile.name}</h1>
