@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Dices, MapPin, Wallet, History, AlertCircle, X, Check, ArrowRight, Users, 
-  User, Bot, Play, Train, Lightbulb, Droplets, HelpCircle, Briefcase, 
-  Coins, Car, ShieldAlert, ArrowRightSquare, Home, Hotel, Building, 
+import {
+  Dices, MapPin, Wallet, History, AlertCircle, X, Check, ArrowRight, Users,
+  User, Bot, Play, Train, Lightbulb, Droplets, HelpCircle, Briefcase,
+  Coins, Car, ShieldAlert, ArrowRightSquare, Home, Hotel, Building,
   RefreshCw, LogOut, ShoppingCart, Repeat, Save, CreditCard, Minus, Plus
 } from 'lucide-react';
 
@@ -74,7 +74,7 @@ const Die = ({ value, isRolling }) => {
 };
 
 const DiceArea = ({ isActive, isRolling, onRoll, dice }) => (
-  <div 
+  <div
     onClick={isActive && !isRolling ? onRoll : undefined}
     className={`
       transition-all duration-500 transform 
@@ -127,16 +127,16 @@ const PlayerCard = ({ player, isActive, logs }) => (
 
 // --- DATA & CONFIG ---
 const BOARD_DATA = [
-  { id: 0,  type: 'corner', name: 'GO', icon: '🏁', reward: 2000 },
-  { id: 1,  type: 'property', name: 'Pune', group: 'BROWN', price: 600, houseCost: 500, mortgage: 300, rent: [20, 100, 300, 900, 1600, 2500] },
-  { id: 2,  type: 'chest', name: 'Community Chest', icon: '📦' },
-  { id: 3,  type: 'property', name: 'Nagpur', group: 'BROWN', price: 600, houseCost: 500, mortgage: 300, rent: [40, 200, 600, 1800, 3200, 4500] },
-  { id: 4,  type: 'tax', name: 'Income Tax', icon: '💸', amount: 2000 },
-  { id: 5,  type: 'railway', name: 'Mumbai Central', group: 'RAILWAY', price: 2000, mortgage: 1000, rent: [250, 500, 1000, 2000] },
-  { id: 6,  type: 'property', name: 'Surat', group: 'LIGHT_BLUE', price: 1000, houseCost: 500, mortgage: 500, rent: [60, 300, 900, 2700, 4000, 5500] },
-  { id: 7,  type: 'chance', name: 'Chance', icon: '❓' },
-  { id: 8,  type: 'property', name: 'Vadodara', group: 'LIGHT_BLUE', price: 1000, houseCost: 500, mortgage: 500, rent: [60, 300, 900, 2700, 4000, 5500] },
-  { id: 9,  type: 'property', name: 'Ahmedabad', group: 'LIGHT_BLUE', price: 1200, houseCost: 500, mortgage: 600, rent: [80, 400, 1000, 3000, 4500, 6000] },
+  { id: 0, type: 'corner', name: 'GO', icon: '🏁', reward: 2000 },
+  { id: 1, type: 'property', name: 'Pune', group: 'BROWN', price: 600, houseCost: 500, mortgage: 300, rent: [20, 100, 300, 900, 1600, 2500] },
+  { id: 2, type: 'chest', name: 'Community Chest', icon: '📦' },
+  { id: 3, type: 'property', name: 'Nagpur', group: 'BROWN', price: 600, houseCost: 500, mortgage: 300, rent: [40, 200, 600, 1800, 3200, 4500] },
+  { id: 4, type: 'tax', name: 'Income Tax', icon: '💸', amount: 2000 },
+  { id: 5, type: 'railway', name: 'Mumbai Central', group: 'RAILWAY', price: 2000, mortgage: 1000, rent: [250, 500, 1000, 2000] },
+  { id: 6, type: 'property', name: 'Surat', group: 'LIGHT_BLUE', price: 1000, houseCost: 500, mortgage: 500, rent: [60, 300, 900, 2700, 4000, 5500] },
+  { id: 7, type: 'chance', name: 'Chance', icon: '❓' },
+  { id: 8, type: 'property', name: 'Vadodara', group: 'LIGHT_BLUE', price: 1000, houseCost: 500, mortgage: 500, rent: [60, 300, 900, 2700, 4000, 5500] },
+  { id: 9, type: 'property', name: 'Ahmedabad', group: 'LIGHT_BLUE', price: 1200, houseCost: 500, mortgage: 600, rent: [80, 400, 1000, 3000, 4500, 6000] },
   { id: 10, type: 'corner', name: 'Jail', icon: '🏛️' },
   { id: 11, type: 'property', name: 'Nashik', group: 'PINK', price: 1400, houseCost: 1000, mortgage: 700, rent: [100, 500, 1500, 4500, 6250, 7500] },
   { id: 12, type: 'utility', name: 'Electric Co.', group: 'UTILITY', price: 1500, mortgage: 750 },
@@ -175,17 +175,19 @@ const CARDS = {
     { text: "Go directly to Jail. Do not pass GO.", action: (p) => ({ type: 'GOTO_JAIL' }) },
     { text: "Speeding fine! Pay ₹150.", action: (p) => ({ type: 'PAY_BANK', amount: 150 }) },
     { text: "Your building loan matures. Collect ₹1500.", action: (p) => ({ type: 'RECEIVE_BANK', amount: 1500 }) },
+    { text: "Get Out of Jail Free.", action: (p) => ({ type: 'GET_OUT_OF_JAIL_FREE' }) },
   ],
   CHEST: [
     { text: "Bank error in your favor. Collect ₹2000.", action: (p) => ({ type: 'RECEIVE_BANK', amount: 2000 }) },
     { text: "Doctor's fee. Pay ₹500.", action: (p) => ({ type: 'PAY_BANK', amount: 500 }) },
     { text: "Income tax refund. Collect ₹200.", action: (p) => ({ type: 'RECEIVE_BANK', amount: 200 }) },
     { text: "Go to Jail. Go directly to jail.", action: (p) => ({ type: 'GOTO_JAIL' }) },
+    { text: "Get Out of Jail Free.", action: (p) => ({ type: 'GET_OUT_OF_JAIL_FREE' }) },
   ]
 };
 
 const getGroupColor = (group) => {
-  switch(group) {
+  switch (group) {
     case 'BROWN': return 'bg-[#8B4513]'; case 'LIGHT_BLUE': return 'bg-[#87CEEB]';
     case 'PINK': return 'bg-[#FF69B4]'; case 'ORANGE': return 'bg-[#FFA500]';
     case 'RED': return 'bg-[#FF0000]'; case 'YELLOW': return 'bg-[#FFD700]';
@@ -205,23 +207,41 @@ const getOwnershipMarkerStyle = (id) => {
 // --- MAIN APP ---
 export default function App() {
   const [appState, setAppState] = useState('setup');
-  const [playerCount, setPlayerCount] = useState(2); 
-  const [gameMode, setGameMode] = useState('bot'); 
+  const [playerCount, setPlayerCount] = useState(2);
+  const [gameMode, setGameMode] = useState('bot');
   const [startingMoney, setStartingMoney] = useState(15000); // Setup Money State
-  
-  // Game State
-  const [players, setPlayers] = useState([]);
-  const [properties, setProperties] = useState({}); 
-  const [turn, setTurn] = useState(0);
-  const [phase, setPhase] = useState('ROLL'); 
-  
+
+  // Unified Game State
+  const [gameState, setGameState] = useState({
+    players: [],
+    properties: {},
+    bank: { houses: 32, hotels: 12 },
+    currentTurn: 0,
+    phase: 'ROLL',
+    dice: [1, 1]
+  });
+
+  const players = gameState.players;
+  const properties = gameState.properties;
+  const turn = gameState.currentTurn;
+  const phase = gameState.phase;
+  const dice = gameState.dice;
+
+  const setPlayers = (updater) => setGameState(prev => ({ ...prev, players: typeof updater === 'function' ? updater(prev.players) : updater }));
+  const setProperties = (updater) => setGameState(prev => ({ ...prev, properties: typeof updater === 'function' ? updater(prev.properties) : updater }));
+  const setTurn = (updater) => setGameState(prev => ({ ...prev, currentTurn: typeof updater === 'function' ? updater(prev.currentTurn) : updater }));
+  const setPhase = (updater) => setGameState(prev => ({ ...prev, phase: typeof updater === 'function' ? updater(prev.phase) : updater }));
+  const setDice = (updater) => setGameState(prev => ({ ...prev, dice: typeof updater === 'function' ? updater(prev.dice) : updater }));
+
+  // Trade State
+  const [tradeState, setTradeState] = useState(null);
+
   // Ephemeral State
-  const [dice, setDice] = useState([1, 1]);
   const [doublesCount, setDoublesCount] = useState(0);
   const [isRolling, setIsRolling] = useState(false);
   const [activeCard, setActiveCard] = useState(null);
   const [selectedTile, setSelectedTile] = useState(null);
-  const [floatingLogs, setFloatingLogs] = useState([]); 
+  const [floatingLogs, setFloatingLogs] = useState([]);
 
   useEffect(() => {
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js');
@@ -249,6 +269,41 @@ export default function App() {
     if (newMoney >= 0) return false;
     const playerRecord = players.find(p => p.id === playerId);
     if (!playerRecord) return true;
+
+    // Try Auto-Liquidate if needed
+    let liquidatedMoney = newMoney;
+    let propsUpdated = { ...properties };
+    const playerProps = Object.keys(propsUpdated).filter(k => propsUpdated[k].ownerId === playerId);
+
+    // Sell Houses first
+    for (let pid of playerProps) {
+      let p = propsUpdated[pid];
+      let tile = BOARD_DATA[pid];
+      while (liquidatedMoney < 0 && (p.houses > 0 || p.hotel)) {
+        if (p.hotel) {
+          p.hotel = false; p.houses = 4; liquidatedMoney += tile.houseCost / 2;
+        } else if (p.houses > 0) {
+          p.houses--; liquidatedMoney += tile.houseCost / 2;
+        }
+      }
+    }
+    // Mortgage
+    for (let pid of playerProps) {
+      let p = propsUpdated[pid];
+      let tile = BOARD_DATA[pid];
+      if (liquidatedMoney < 0 && !p.mortgaged && Object.keys(propsUpdated).filter(k => BOARD_DATA[k].group === tile.group).every(k => propsUpdated[k].houses === 0 && !propsUpdated[k].hotel)) {
+        p.mortgaged = true;
+        liquidatedMoney += tile.mortgage;
+      }
+    }
+
+    if (liquidatedMoney >= 0) {
+      setProperties(propsUpdated);
+      setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === playerId); if (idx > -1) up[idx].money = liquidatedMoney; return up; });
+      addLog(`Liquidated to cover debt!`, playerId);
+      return false;
+    }
+
     addLog(`🚨 BANKRUPT!`, playerId);
     setProperties(prev => {
       const updated = { ...prev };
@@ -279,7 +334,7 @@ export default function App() {
         setPlayers(prev => {
           const up = [...prev];
           const pIndex = up.findIndex(p => p.id === activePlayer.id);
-          if(pIndex === -1) return up;
+          if (pIndex === -1) return up;
           const newPos = (up[pIndex].position + 1) % 40;
           up[pIndex].position = newPos;
           if (window.gsap) {
@@ -336,18 +391,22 @@ export default function App() {
       if (activePlayer.inJail) {
         if (isDouble) {
           addLog(`Escaped Jail!`, activePlayer.id);
-          setPlayers(prev => { const up=[...prev]; const idx=up.findIndex(p=>p.id===activePlayer.id); if(idx>-1){up[idx].inJail = false; up[idx].jailTurns = 0;} return up; });
+          setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === activePlayer.id); if (idx > -1) { up[idx].inJail = false; up[idx].jailTurns = 0; } return up; });
+          movePlayerStepByStep(d1 + d2);
+        } else if (activePlayer.getOutOfJailFree > 0) {
+          addLog(`Used Get Out of Jail Free!`, activePlayer.id);
+          setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === activePlayer.id); if (idx > -1) { up[idx].inJail = false; up[idx].jailTurns = 0; up[idx].getOutOfJailFree--; } return up; });
           movePlayerStepByStep(d1 + d2);
         } else {
           const newTurns = (activePlayer.jailTurns || 0) + 1;
           if (newTurns >= 3) {
             addLog(`Paid ₹500 fine.`, activePlayer.id);
             payBank(500, "Jail Fine");
-            setPlayers(prev => { const up=[...prev]; const idx=up.findIndex(p=>p.id===activePlayer.id); if(idx>-1){up[idx].inJail = false; up[idx].jailTurns = 0;} return up; });
+            setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === activePlayer.id); if (idx > -1) { up[idx].inJail = false; up[idx].jailTurns = 0; } return up; });
             movePlayerStepByStep(d1 + d2);
           } else {
             addLog(`Stay in jail (${newTurns})`, activePlayer.id);
-            setPlayers(prev => { const up=[...prev]; const idx=up.findIndex(p=>p.id===activePlayer.id); if(idx>-1) up[idx].jailTurns = newTurns; return up; });
+            setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === activePlayer.id); if (idx > -1) up[idx].jailTurns = newTurns; return up; });
             setPhase('END');
           }
         }
@@ -383,7 +442,7 @@ export default function App() {
         }
       }
       else setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
-    } 
+    }
     else if (tile.type === 'chance' || tile.type === 'chest') {
       const deck = tile.type === 'chance' ? CARDS.CHANCE : CARDS.CHEST;
       const card = deck[Math.floor(Math.random() * deck.length)];
@@ -393,7 +452,7 @@ export default function App() {
     else if (tile.type === 'tax') {
       payBank(tile.amount, `Paid ${tile.name}`);
       setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
-    } 
+    }
     else if (tile.id === 30) {
       addLog(`Sent to Jail!`, activePlayer.id);
       jumpToJail();
@@ -447,7 +506,7 @@ export default function App() {
       return up;
     });
     addLog(`Paid ₹${amount} rent.`, activePlayer.id);
-    if(!checkBankruptcy(activePlayer.id, activePlayer.money - amount)) {
+    if (!checkBankruptcy(activePlayer.id, activePlayer.money - amount)) {
       setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
     }
   };
@@ -462,7 +521,7 @@ export default function App() {
     const result = activeCard.action(activePlayer);
     setActiveCard(null);
     if (result.type === 'RECEIVE_BANK') {
-      setPlayers(prev => { const up=[...prev]; if (up[turn]) up[turn].money += result.amount; return up; });
+      setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money += result.amount; return up; });
       setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
     } else if (result.type === 'PAY_BANK') {
       payBank(result.amount, "Card Fine");
@@ -472,6 +531,9 @@ export default function App() {
       movePlayerStepByStep(diff, true);
     } else if (result.type === 'GOTO_JAIL') {
       jumpToJail();
+    } else if (result.type === 'GET_OUT_OF_JAIL_FREE') {
+      setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].getOutOfJailFree = (up[turn].getOutOfJailFree || 0) + 1; return up; });
+      setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE');
     }
   };
 
@@ -481,19 +543,47 @@ export default function App() {
     setPhase('ROLL');
   };
 
+  const executeTrade = () => {
+    if (!tradeState || !tradeState.targetPlayerId) return;
+    const { targetPlayerId, myOffer, theirOffer } = tradeState;
+    const p1Id = activePlayer.id;
+    const p2Id = targetPlayerId;
+
+    setPlayers(prev => {
+      let up = [...prev];
+      let p1 = up.find(p => p.id === p1Id);
+      let p2 = up.find(p => p.id === p2Id);
+      if (p1 && p2) {
+        p1.money = p1.money - myOffer.cash + theirOffer.cash;
+        p2.money = p2.money - theirOffer.cash + myOffer.cash;
+      }
+      return up;
+    });
+
+    setProperties(prev => {
+      let up = { ...prev };
+      myOffer.properties.forEach(pid => { if (up[pid]) up[pid].ownerId = p2Id; });
+      theirOffer.properties.forEach(pid => { if (up[pid]) up[pid].ownerId = p1Id; });
+      return up;
+    });
+
+    addLog(`Trade successful!`, p1Id);
+    setTradeState(null);
+  };
+
   const toggleMortgage = (propId) => {
     const prop = properties[propId];
     const tile = BOARD_DATA[propId];
     if (prop.houses > 0 || prop.hotel) return addLog("Sell houses first!", activePlayer.id);
     if (!prop.mortgaged) {
-      setProperties(prev => ({...prev, [propId]: {...prop, mortgaged: true}}));
-      setPlayers(prev => { const up=[...prev]; if (up[turn]) up[turn].money += tile.mortgage; return up; });
+      setProperties(prev => ({ ...prev, [propId]: { ...prop, mortgaged: true } }));
+      setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money += tile.mortgage; return up; });
       addLog(`Mortgaged property`, activePlayer.id);
     } else {
       const cost = Math.floor(tile.mortgage * 1.1);
       if (activePlayer.money >= cost) {
-        setProperties(prev => ({...prev, [propId]: {...prop, mortgaged: false}}));
-        setPlayers(prev => { const up=[...prev]; if (up[turn]) up[turn].money -= cost; return up; });
+        setProperties(prev => ({ ...prev, [propId]: { ...prop, mortgaged: false } }));
+        setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money -= cost; return up; });
         addLog(`Redeemed property`, activePlayer.id);
       } else {
         addLog("No funds!", activePlayer.id);
@@ -508,14 +598,25 @@ export default function App() {
     const ownsAll = groupProps.every(t => properties[t.id]?.ownerId === activePlayer.id);
     if (!ownsAll) return addLog("Need full set!", activePlayer.id);
     if (prop.mortgaged) return addLog("Property mortgaged.", activePlayer.id);
+
+    const anyMortgaged = groupProps.some(t => properties[t.id]?.mortgaged);
+    if (anyMortgaged) return addLog("Redeem all first!", activePlayer.id);
+
+    // Check even building
+    const groupHouses = groupProps.map(t => (properties[t.id]?.hotel ? 5 : (properties[t.id]?.houses || 0)));
+    const minHouses = Math.min(...groupHouses);
+    const currentLevel = prop.hotel ? 5 : (prop.houses || 0);
+
+    if (currentLevel > minHouses) return addLog("Build evenly!", activePlayer.id);
+
     if (activePlayer.money >= tile.houseCost) {
       if (prop.houses < 4 && !prop.hotel) {
-        setProperties(prev => ({...prev, [propId]: {...prop, houses: prop.houses + 1}}));
-        setPlayers(prev => { const up=[...prev]; if (up[turn]) up[turn].money -= tile.houseCost; return up; });
+        setProperties(prev => ({ ...prev, [propId]: { ...prop, houses: prop.houses + 1 } }));
+        setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money -= tile.houseCost; return up; });
         addLog(`House built.`, activePlayer.id);
       } else if (prop.houses === 4 && !prop.hotel) {
-        setProperties(prev => ({...prev, [propId]: {...prop, houses: 0, hotel: true}}));
-        setPlayers(prev => { const up=[...prev]; if (up[turn]) up[turn].money -= tile.houseCost; return up; });
+        setProperties(prev => ({ ...prev, [propId]: { ...prop, houses: 0, hotel: true } }));
+        setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money -= tile.houseCost; return up; });
         addLog(`HOTEL built!`, activePlayer.id);
       }
     } else addLog("No funds!", activePlayer.id);
@@ -528,7 +629,7 @@ export default function App() {
     } else if (activePlayer.isBot && phase === 'ACTION_BUY') {
       setTimeout(() => {
         const tile = BOARD_DATA[activePlayer.position];
-        if (activePlayer.money > tile.price * 1.5) buyProperty();
+        if (activePlayer.money > tile.price + 1500) buyProperty();
         else setPhase(doublesCount > 0 ? 'ROLL' : 'END');
       }, 1500);
     } else if (activePlayer.isBot && phase === 'ACTION_PAY') {
@@ -574,12 +675,12 @@ export default function App() {
           <h1 className="text-5xl font-black text-blue-600 mb-2 tracking-tighter">VYAPARI</h1>
           <p className="text-slate-400 mb-8 font-medium italic text-center">Complete Indian Edition</p>
           <div className="w-full space-y-6 mb-8 text-center">
-            
+
             {/* STARTING MONEY INPUT */}
             <div className="space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Starting Money</h3>
               <div className="flex items-center justify-center gap-3">
-                <button 
+                <button
                   onClick={() => setStartingMoney(prev => Math.max(1500, prev - 500))}
                   className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-all text-blue-600"
                 >
@@ -587,17 +688,17 @@ export default function App() {
                 </button>
                 <div className="flex-1 bg-blue-50 border-2 border-blue-100 rounded-2xl py-3 px-4 flex items-center justify-center relative overflow-hidden group">
                   <span className="text-xl font-black text-blue-600 z-10">₹{startingMoney.toLocaleString()}</span>
-                  <input 
-                    type="range" 
-                    min="1500" 
-                    max="20000" 
-                    step="500" 
-                    value={startingMoney} 
+                  <input
+                    type="range"
+                    min="1500"
+                    max="20000"
+                    step="500"
+                    value={startingMoney}
                     onChange={(e) => setStartingMoney(parseInt(e.target.value))}
                     className="absolute inset-0 opacity-0 cursor-pointer z-20"
                   />
                 </div>
-                <button 
+                <button
                   onClick={() => setStartingMoney(prev => Math.min(20000, prev + 500))}
                   className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-all text-blue-600"
                 >
@@ -621,10 +722,10 @@ export default function App() {
               </div>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => {
               const colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500'];
-              setPlayers(Array.from({length: playerCount}).map((_, i) => ({ id: i + 1, name: gameMode === 'bot' && i > 0 ? `Bot ${i+1}` : `Player ${i + 1}`, color: colors[i], money: startingMoney, position: 0, isBot: gameMode === 'bot' && i > 0, inJail: false, jailTurns: 0 })));
+              setPlayers(Array.from({ length: playerCount }).map((_, i) => ({ id: i + 1, name: gameMode === 'bot' && i > 0 ? `Bot ${i + 1}` : `Player ${i + 1}`, color: colors[i], money: startingMoney, position: 0, isBot: gameMode === 'bot' && i > 0, inJail: false, jailTurns: 0 })));
               setAppState('game');
             }}
             className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-2xl shadow-xl flex items-center justify-center gap-3 hover:bg-blue-700 active:scale-95 transition-all"
@@ -636,7 +737,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-blue-50 text-slate-800 flex flex-col items-center justify-center p-0 sm:p-4 font-sans select-none overflow-x-hidden relative">
-      
+
       {/* GLOBAL KEYFRAME STYLE */}
       <style>{`
         @keyframes floatUpVanish {
@@ -666,12 +767,12 @@ export default function App() {
       {/* TOP PLAYERS */}
       <div className="w-full max-w-[850px] flex justify-between items-start mb-6 px-4">
         <div className="flex flex-col items-center gap-4">
-           <DiceArea isActive={turn === 1} dice={dice} isRolling={isRolling} onRoll={rollDice} />
-           {players[1] && <PlayerCard player={players[1]} isActive={turn === 1} logs={floatingLogs} />}
+          <DiceArea isActive={turn === 1} dice={dice} isRolling={isRolling} onRoll={rollDice} />
+          {players[1] && <PlayerCard player={players[1]} isActive={turn === 1} logs={floatingLogs} />}
         </div>
         <div className="flex flex-col items-center gap-4">
-            <DiceArea isActive={turn === 2} dice={dice} isRolling={isRolling} onRoll={rollDice} />
-            {players[2] && <PlayerCard player={players[2]} isActive={turn === 2} logs={floatingLogs} />}
+          <DiceArea isActive={turn === 2} dice={dice} isRolling={isRolling} onRoll={rollDice} />
+          {players[2] && <PlayerCard player={players[2]} isActive={turn === 2} logs={floatingLogs} />}
         </div>
       </div>
 
@@ -690,8 +791,8 @@ export default function App() {
               <div className={`absolute inset-0 flex flex-col items-center justify-start ${getTileOrientation(tile.id)}`}>
                 {colorClass && (
                   <div className={`absolute top-0 left-0 w-full h-[15%] ${colorClass} border-b-[1.5px] border-slate-800 flex items-center justify-center gap-0.5`}>
-                     {propData?.houses > 0 && [...Array(propData.houses)].map((_,i)=><Home key={i} size={8} className="text-white fill-white"/>)}
-                     {propData?.hotel && <Hotel size={12} className="text-white fill-red-500"/>}
+                    {propData?.houses > 0 && [...Array(propData.houses)].map((_, i) => <Home key={i} size={8} className="text-white fill-white" />)}
+                    {propData?.hotel && <Hotel size={12} className="text-white fill-red-500" />}
                   </div>
                 )}
                 <div className={`flex flex-col items-center justify-center w-full h-full ${colorClass ? 'pt-[22%]' : 'px-0.5'}`}>
@@ -703,7 +804,7 @@ export default function App() {
               </div>
               {owner && !isCorner && (<div className={`absolute z-20 ${getOwnershipMarkerStyle(tile.id)}`}><PawnIcon colorClass={owner.color} size="w-4 h-4 sm:w-7 sm:h-7" /></div>)}
               <div className="absolute inset-0 p-1 flex items-center justify-center pointer-events-none z-30"><div className="grid grid-cols-2 gap-1 w-full h-full max-w-[85%] max-h-[85%] items-center justify-items-center">
-                  {occupants.map(p => (<div key={p.id} className="flex items-center justify-center w-full h-full overflow-hidden"><PawnIcon id={`pawn-${p.id}`} colorClass={p.color} size="w-full h-full max-w-[14px] max-h-[14px] sm:max-w-[28px] sm:max-h-[28px]" /></div>))}
+                {occupants.map(p => (<div key={p.id} className="flex items-center justify-center w-full h-full overflow-hidden"><PawnIcon id={`pawn-${p.id}`} colorClass={p.color} size="w-full h-full max-w-[14px] max-h-[14px] sm:max-w-[28px] sm:max-h-[28px]" /></div>))}
               </div></div>
             </div>
           );
@@ -714,30 +815,34 @@ export default function App() {
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
             <h1 className="text-[70px] sm:text-[140px] font-black text-slate-800 rotate-[-45deg] tracking-tighter">VYAPARI</h1>
           </div>
-          
+
           <div className="z-50 w-full flex flex-col items-center justify-center flex-1">
             {/* 5 BUTTONS INSIDE THE BOARD */}
             <div className="grid grid-cols-5 gap-3 mb-6 w-full max-w-[500px]">
-               <button onClick={() => addLog("Sell: Choose property")} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-red-50 hover:border-red-200">
-                  <ShoppingCart size={22} className="text-red-500 group-active:scale-90" />
-                  <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Sell</span>
-               </button>
-               <button onClick={() => setPhase('MANAGE')} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-green-50 hover:border-green-200">
-                  <Building size={22} className="text-green-500 group-active:scale-90" />
-                  <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Build</span>
-               </button>
-               <button onClick={() => addLog("Trade: Select player")} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-blue-50 hover:border-blue-200">
-                  <Repeat size={22} className="text-blue-500 group-active:scale-90" />
-                  <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Trade</span>
-               </button>
-               <button onClick={() => addLog("Load: Game data")} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-slate-50 hover:border-slate-400">
-                  <Save size={22} className="text-slate-600 group-active:scale-90" />
-                  <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Load</span>
-               </button>
-               <button onClick={() => setPhase('MANAGE')} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-orange-50 hover:border-orange-200">
-                  <RefreshCw size={22} className="text-orange-500 group-active:scale-90" />
-                  <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Mortgage</span>
-               </button>
+              <button onClick={() => addLog("Sell: Choose property")} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-red-50 hover:border-red-200">
+                <ShoppingCart size={22} className="text-red-500 group-active:scale-90" />
+                <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Sell</span>
+              </button>
+              <button onClick={() => setPhase('MANAGE')} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-green-50 hover:border-green-200">
+                <Building size={22} className="text-green-500 group-active:scale-90" />
+                <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Build</span>
+              </button>
+              <button onClick={() => {
+                const targets = players.filter(p => p.id !== activePlayer.id && !p.isBot);
+                if (targets.length > 0) setTradeState({ targetPlayerId: targets[0].id, myOffer: { cash: 0, properties: [] }, theirOffer: { cash: 0, properties: [] } });
+                else addLog("No trade partners.");
+              }} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-blue-50 hover:border-blue-200">
+                <Repeat size={22} className="text-blue-500 group-active:scale-90" />
+                <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Trade</span>
+              </button>
+              <button onClick={() => addLog("Load: Game data")} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-slate-50 hover:border-slate-400">
+                <Save size={22} className="text-slate-600 group-active:scale-90" />
+                <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Loan</span>
+              </button>
+              <button onClick={() => setPhase('MANAGE')} className="flex flex-col items-center justify-center bg-white border-2 border-slate-300 rounded-xl p-3 sm:p-4 transition-all shadow-md group hover:bg-orange-50 hover:border-orange-200">
+                <RefreshCw size={22} className="text-orange-500 group-active:scale-90" />
+                <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-tight mt-1.5">Mortgage</span>
+              </button>
             </div>
 
             {/* ACTION MODAL - INSIDE BOARD */}
@@ -748,28 +853,28 @@ export default function App() {
                   <>
                     <h2 className="text-lg sm:text-2xl font-black text-center mb-5 truncate">{BOARD_DATA[activePlayer.position].name}</h2>
                     <div className="bg-blue-50 p-3 sm:p-4 rounded-2xl text-center border-2 border-blue-100 mb-5">
-                        <span className="text-slate-500 text-xs uppercase font-bold">Asking Price</span>
-                        <p className="text-2xl sm:text-4xl font-black text-blue-600">₹{BOARD_DATA[activePlayer.position].price}</p>
+                      <span className="text-slate-500 text-xs uppercase font-bold">Asking Price</span>
+                      <p className="text-2xl sm:text-4xl font-black text-blue-600">₹{BOARD_DATA[activePlayer.position].price}</p>
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={buyProperty} className="flex-1 bg-green-500 text-white py-2 sm:py-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1 shadow-lg shadow-green-200 active:scale-95"><Check size={16}/> BUY</button>
-                        <button onClick={() => setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE')} className="flex-1 bg-red-500 text-white py-2 sm:py-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1 shadow-lg shadow-red-200 active:scale-95"><X size={16}/> PASS</button>
+                      <button onClick={buyProperty} className="flex-1 bg-green-500 text-white py-2 sm:py-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1 shadow-lg shadow-green-200 active:scale-95"><Check size={16} /> BUY</button>
+                      <button onClick={() => setPhase(doublesCount > 0 ? 'ROLL' : 'MANAGE')} className="flex-1 bg-red-500 text-white py-2 sm:py-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1 shadow-lg shadow-red-200 active:scale-95"><X size={16} /> PASS</button>
                     </div>
                   </>
                 )}
                 {phase === 'ACTION_PAY' && properties[BOARD_DATA[activePlayer.position].id] && (
                   <>
                     <div className="bg-red-50 p-4 sm:p-6 rounded-2xl text-center border-2 border-red-100 mb-5">
-                        <AlertCircle className="mx-auto text-red-500 mb-2" />
-                        <p className="text-red-900 font-bold text-xs uppercase">Pay {players.find(p=>p.id===properties[BOARD_DATA[activePlayer.position].id].ownerId)?.name}</p>
-                        <p className="text-3xl sm:text-5xl font-black text-red-600">₹{calculateRent(BOARD_DATA[activePlayer.position], properties[BOARD_DATA[activePlayer.position].id])}</p>
+                      <AlertCircle className="mx-auto text-red-500 mb-2" />
+                      <p className="text-red-900 font-bold text-xs uppercase">Pay {players.find(p => p.id === properties[BOARD_DATA[activePlayer.position].id].ownerId)?.name}</p>
+                      <p className="text-3xl sm:text-5xl font-black text-red-600">₹{calculateRent(BOARD_DATA[activePlayer.position], properties[BOARD_DATA[activePlayer.position].id])}</p>
                     </div>
                     <button onClick={payRentAction} className="w-full bg-red-600 text-white py-4 rounded-xl font-black text-lg shadow-xl active:scale-95 transition-all">PAY RENT NOW</button>
                   </>
                 )}
                 {phase === 'ACTION_CARD' && activeCard && (
                   <div className="text-center">
-                    <div className="mb-5">{activeCard.type === 'CHANCE' ? <HelpCircle size={48} className="mx-auto text-purple-500 mb-2"/> : <Briefcase size={48} className="mx-auto text-blue-500 mb-2"/>}<h2 className="font-black text-2xl uppercase">{activeCard.type}</h2></div>
+                    <div className="mb-5">{activeCard.type === 'CHANCE' ? <HelpCircle size={48} className="mx-auto text-purple-500 mb-2" /> : <Briefcase size={48} className="mx-auto text-blue-500 mb-2" />}<h2 className="font-black text-2xl uppercase">{activeCard.type}</h2></div>
                     <p className="font-bold text-slate-700 mb-8 bg-slate-100 p-5 rounded-2xl text-sm italic leading-relaxed border border-slate-200 shadow-inner">"{activeCard.text}"</p>
                     <button onClick={applyCard} className="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-lg shadow-lg">CONTINUE</button>
                   </div>
@@ -779,10 +884,10 @@ export default function App() {
 
             {phase === 'MANAGE' && !activePlayer.isBot && (
               <div className="bg-slate-800/95 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl border-[3px] border-slate-600 w-full max-w-[320px] text-white text-center animate-in fade-in">
-                <Building size={40} className="mx-auto text-yellow-400 mb-3"/>
+                <Building size={40} className="mx-auto text-yellow-400 mb-3" />
                 <h3 className="font-black text-xl mb-2">Property Control</h3>
                 <p className="text-xs text-slate-300 mb-6 italic">Select owned property to Upgrade or Mortgage.</p>
-                <button onClick={endTurn} className="w-full bg-yellow-500 text-slate-900 py-4 rounded-xl font-black text-lg shadow-lg flex items-center justify-center gap-3 hover:bg-yellow-400 active:scale-95 transition-all">FINISH TURN <ArrowRight size={20}/></button>
+                <button onClick={endTurn} className="w-full bg-yellow-500 text-slate-900 py-4 rounded-xl font-black text-lg shadow-lg flex items-center justify-center gap-3 hover:bg-yellow-400 active:scale-95 transition-all">FINISH TURN <ArrowRight size={20} /></button>
               </div>
             )}
           </div>
@@ -801,48 +906,118 @@ export default function App() {
         </div>
       </div>
 
+      {/* TRADE MODAL */}
+      {tradeState && (
+        <div className="fixed inset-0 z-[130] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-[600px] shadow-2xl flex flex-col p-6 animate-in zoom-in-95">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black uppercase text-blue-900 border-b-4 border-blue-500 pb-2">Trade Negotiation</h2>
+              <button onClick={() => setTradeState(null)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500"><X size={24} /></button>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Trade With:</label>
+              <select
+                value={tradeState.targetPlayerId || ''}
+                onChange={e => setTradeState({ ...tradeState, targetPlayerId: parseInt(e.target.value) })}
+                className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold text-slate-800"
+              >
+                {players.filter(p => p.id !== activePlayer.id && !p.isBot).map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 flex-1 overflow-y-auto mb-6">
+              {/* MY OFFER */}
+              <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+                <h3 className="font-black text-blue-800 text-center uppercase mb-3 text-sm">Your Offer</h3>
+                <div className="mb-3">
+                  <label className="text-[10px] uppercase font-bold text-blue-600 block mb-1">Cash (₹)</label>
+                  <input type="number" step="100" min="0" max={activePlayer.money} value={tradeState.myOffer.cash} onChange={e => setTradeState({ ...tradeState, myOffer: { ...tradeState.myOffer, cash: parseInt(e.target.value) || 0 } })} className="w-full bg-white rounded-lg p-2 font-bold text-blue-900 border border-blue-200" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-blue-600 block mb-1">Properties</label>
+                  {Object.keys(properties).filter(k => properties[k].ownerId === activePlayer.id).map(pid => (
+                    <button key={pid} onClick={() => {
+                      const props = tradeState.myOffer.properties.includes(parseInt(pid)) ? tradeState.myOffer.properties.filter(id => id !== parseInt(pid)) : [...tradeState.myOffer.properties, parseInt(pid)];
+                      setTradeState({ ...tradeState, myOffer: { ...tradeState.myOffer, properties: props } });
+                    }} className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all ${tradeState.myOffer.properties.includes(parseInt(pid)) ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>
+                      {BOARD_DATA[pid].name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* THEIR OFFER */}
+              <div className="bg-orange-50 rounded-2xl p-4 border border-orange-100">
+                <h3 className="font-black text-orange-800 text-center uppercase mb-3 text-sm">You Receive</h3>
+                <div className="mb-3">
+                  <label className="text-[10px] uppercase font-bold text-orange-600 block mb-1">Cash (₹)</label>
+                  <input type="number" step="100" min="0" value={tradeState.theirOffer.cash} onChange={e => setTradeState({ ...tradeState, theirOffer: { ...tradeState.theirOffer, cash: parseInt(e.target.value) || 0 } })} className="w-full bg-white rounded-lg p-2 font-bold text-orange-900 border border-orange-200" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-orange-600 block mb-1">Properties</label>
+                  {Object.keys(properties).filter(k => properties[k].ownerId === tradeState.targetPlayerId).map(pid => (
+                    <button key={pid} onClick={() => {
+                      const props = tradeState.theirOffer.properties.includes(parseInt(pid)) ? tradeState.theirOffer.properties.filter(id => id !== parseInt(pid)) : [...tradeState.theirOffer.properties, parseInt(pid)];
+                      setTradeState({ ...tradeState, theirOffer: { ...tradeState.theirOffer, properties: props } });
+                    }} className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all ${tradeState.theirOffer.properties.includes(parseInt(pid)) ? 'bg-orange-500 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>
+                      {BOARD_DATA[pid].name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <button onClick={executeTrade} className="w-full bg-green-500 py-4 rounded-xl text-white font-black text-xl shadow-lg hover:bg-green-600 active:scale-95 transition-all flex items-center justify-center gap-2">
+              <Check size={24} /> CONFIRM TRADE
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* PROPERTY MANAGE / VIEW MODAL */}
       {selectedTile && (
         <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-md flex items-center justify-center p-2" onClick={() => setSelectedTile(null)}>
-           <div className="bg-white rounded-xl w-full max-w-[240px] shadow-2xl overflow-hidden border-[2px] border-slate-800 flex flex-col" onClick={e => e.stopPropagation()}>
-              <div className={`${getGroupColor(selectedTile.group) || 'bg-slate-200'} p-4 text-center border-b-[3px] border-slate-800`}>
-                 <h3 className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-1 ${['YELLOW', 'LIGHT_BLUE', 'PINK'].includes(selectedTile.group) ? 'text-slate-800' : 'text-white'}`}>Title Deed</h3>
-                 <h1 className={`text-2xl font-black uppercase tracking-wider ${['YELLOW', 'LIGHT_BLUE', 'PINK'].includes(selectedTile.group) ? 'text-slate-800' : 'text-white'}`}>{selectedTile.name}</h1>
-              </div>
-              <div className="p-5 bg-[#fdfdfd] text-slate-800 font-serif">
-                 {selectedTile.type === 'property' ? (
-                   <>
-                     <div className="flex justify-between items-center mb-3 font-black text-sm italic"><span>RENT Site Only</span><span>₹{selectedTile.rent[0]}</span></div>
-                     <div className="space-y-1 text-[11px] font-bold text-slate-600">
-                        <div className="flex justify-between"><span>With 1 House</span><span>₹{selectedTile.rent[1]}</span></div>
-                        <div className="flex justify-between"><span>With 2 Houses</span><span>₹{selectedTile.rent[2]}</span></div>
-                        <div className="flex justify-between"><span>With 3 Houses</span><span>₹{selectedTile.rent[3]}</span></div>
-                        <div className="flex justify-between"><span>With 4 Houses</span><span>₹{selectedTile.rent[4]}</span></div>
-                     </div>
-                     <div className="flex justify-between items-center my-3 font-black text-sm italic border-t border-slate-200 pt-2"><span>With HOTEL</span><span>₹{selectedTile.rent[5]}</span></div>
-                     <div className="grid grid-cols-2 gap-4 text-[10px] font-bold border-t border-slate-200 pt-3">
-                        <div className="flex flex-col items-center text-center"><span className="text-slate-400 uppercase text-[8px]">Mortgage</span><span className="text-xs">₹{selectedTile.mortgage}</span></div>
-                        <div className="flex flex-col items-center text-center"><span className="text-slate-400 uppercase text-[8px]">House cost</span><span className="text-xs">₹{selectedTile.houseCost}</span></div>
-                     </div>
-                   </>
-                 ) : (
-                    <div className="text-center font-black py-8 text-2xl">₹{selectedTile.price || selectedTile.amount || '0'}</div>
-                 )}
-              </div>
-              {properties[selectedTile.id]?.ownerId === activePlayer.id && phase === 'MANAGE' ? (
-                 <div className="bg-slate-100 p-4 space-y-3 border-t-2 border-slate-300">
-                    <p className="text-[10px] text-center font-black text-slate-500 uppercase tracking-widest">Manage Property</p>
-                    <div className="flex gap-3">
-                      <button onClick={() => { buildHouse(selectedTile.id); setSelectedTile(null); }} className="flex-1 bg-green-500 text-white text-xs font-black py-3 rounded-xl shadow flex justify-center items-center gap-1.5"><Home size={14}/> Build</button>
-                      <button onClick={() => { toggleMortgage(selectedTile.id); setSelectedTile(null); }} className="flex-1 bg-orange-500 text-white text-xs font-black py-3 rounded-xl shadow flex justify-center items-center gap-1.5"><RefreshCw size={14}/> {properties[selectedTile.id].mortgaged ? 'Redeem' : 'Mortgage'}</button>
-                    </div>
-                 </div>
+          <div className="bg-white rounded-xl w-full max-w-[240px] shadow-2xl overflow-hidden border-[2px] border-slate-800 flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className={`${getGroupColor(selectedTile.group) || 'bg-slate-200'} p-4 text-center border-b-[3px] border-slate-800`}>
+              <h3 className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-1 ${['YELLOW', 'LIGHT_BLUE', 'PINK'].includes(selectedTile.group) ? 'text-slate-800' : 'text-white'}`}>Title Deed</h3>
+              <h1 className={`text-2xl font-black uppercase tracking-wider ${['YELLOW', 'LIGHT_BLUE', 'PINK'].includes(selectedTile.group) ? 'text-slate-800' : 'text-white'}`}>{selectedTile.name}</h1>
+            </div>
+            <div className="p-5 bg-[#fdfdfd] text-slate-800 font-serif">
+              {selectedTile.type === 'property' ? (
+                <>
+                  <div className="flex justify-between items-center mb-3 font-black text-sm italic"><span>RENT Site Only</span><span>₹{selectedTile.rent[0]}</span></div>
+                  <div className="space-y-1 text-[11px] font-bold text-slate-600">
+                    <div className="flex justify-between"><span>With 1 House</span><span>₹{selectedTile.rent[1]}</span></div>
+                    <div className="flex justify-between"><span>With 2 Houses</span><span>₹{selectedTile.rent[2]}</span></div>
+                    <div className="flex justify-between"><span>With 3 Houses</span><span>₹{selectedTile.rent[3]}</span></div>
+                    <div className="flex justify-between"><span>With 4 Houses</span><span>₹{selectedTile.rent[4]}</span></div>
+                  </div>
+                  <div className="flex justify-between items-center my-3 font-black text-sm italic border-t border-slate-200 pt-2"><span>With HOTEL</span><span>₹{selectedTile.rent[5]}</span></div>
+                  <div className="grid grid-cols-2 gap-4 text-[10px] font-bold border-t border-slate-200 pt-3">
+                    <div className="flex flex-col items-center text-center"><span className="text-slate-400 uppercase text-[8px]">Mortgage</span><span className="text-xs">₹{selectedTile.mortgage}</span></div>
+                    <div className="flex flex-col items-center text-center"><span className="text-slate-400 uppercase text-[8px]">House cost</span><span className="text-xs">₹{selectedTile.houseCost}</span></div>
+                  </div>
+                </>
               ) : (
-                <div className="bg-slate-50 p-3 text-center border-t-2 border-slate-200">
-                   <button onClick={() => setSelectedTile(null)} className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-blue-500">Close Deed</button>
-                </div>
+                <div className="text-center font-black py-8 text-2xl">₹{selectedTile.price || selectedTile.amount || '0'}</div>
               )}
-           </div>
+            </div>
+            {properties[selectedTile.id]?.ownerId === activePlayer.id && phase === 'MANAGE' ? (
+              <div className="bg-slate-100 p-4 space-y-3 border-t-2 border-slate-300">
+                <p className="text-[10px] text-center font-black text-slate-500 uppercase tracking-widest">Manage Property</p>
+                <div className="flex gap-3">
+                  <button onClick={() => { buildHouse(selectedTile.id); setSelectedTile(null); }} className="flex-1 bg-green-500 text-white text-xs font-black py-3 rounded-xl shadow flex justify-center items-center gap-1.5"><Home size={14} /> Build</button>
+                  <button onClick={() => { toggleMortgage(selectedTile.id); setSelectedTile(null); }} className="flex-1 bg-orange-500 text-white text-xs font-black py-3 rounded-xl shadow flex justify-center items-center gap-1.5"><RefreshCw size={14} /> {properties[selectedTile.id].mortgaged ? 'Redeem' : 'Mortgage'}</button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-50 p-3 text-center border-t-2 border-slate-200">
+                <button onClick={() => setSelectedTile(null)} className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-blue-500">Close Deed</button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
