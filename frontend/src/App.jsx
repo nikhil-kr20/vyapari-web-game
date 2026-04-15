@@ -112,11 +112,13 @@ const FloatingNotifications = ({ logs, playerId }) => {
   );
 };
 
-const PlayerCard = ({ player, isActive, logs }) => (
+const PlayerCard = ({ player, isActive, logs, onClick }) => (
   <div className="relative">
     <FloatingNotifications logs={logs} playerId={player.id} />
-    <div className={`p-3 sm:p-4 rounded-2xl shadow-xl border-4 w-32 sm:w-48 transition-all duration-300 bg-white
-      ${isActive ? 'border-blue-500 scale-105 shadow-blue-500/30 ring-4 ring-blue-500/20' : 'border-slate-100 opacity-80'}
+    <div 
+      onClick={onClick}
+      className={`p-3 sm:p-4 rounded-2xl shadow-xl border-4 w-32 sm:w-48 transition-all duration-300 bg-white cursor-pointer hover:shadow-lg transform hover:scale-105
+      ${isActive ? 'border-blue-500 scale-105 shadow-blue-500/30 ring-4 ring-blue-500/20' : 'border-slate-100 opacity-80 hover:border-blue-300'}
     `}>
       <div className="flex items-center gap-2 mb-2">
         <PawnIcon colorClass={player.color} size="w-5 h-5 sm:w-7 sm:h-7" />
@@ -276,6 +278,8 @@ export default function App() {
   const [bankruptcyPlayerId, setBankruptcyPlayerId] = useState(null);
   const [pendingManage, setPendingManage] = useState({ propId: null, action: null });
   const [loanDraft, setLoanDraft] = useState({ takeAmount: '', repayAmount: '' });
+  const [playerDescriptionModal, setPlayerDescriptionModal] = useState(false);
+  const [selectedPlayerForDescriptionId, setSelectedPlayerForDescriptionId] = useState(null);
 
   useEffect(() => {
     LoanScript('https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js');
@@ -297,6 +301,7 @@ export default function App() {
   };
 
   const activePlayer = players[turn] || {};
+  const selectedPlayerForDescription = players.find(player => player.id === selectedPlayerForDescriptionId) || null;
 
   const getPlayerPropertyWorth = (playerId) => {
     return Object.entries(properties).reduce((sum, [propId, propState]) => {
@@ -340,6 +345,12 @@ export default function App() {
   const repaySliderValue = Math.min(maxRepayAmount, Math.max(0, parseInt(loanDraft.repayAmount, 10) || 0));
   const nextTurnLoanTotal = Math.ceil(projectedOutstandingLoan * (1 + LOAN_RATE_PER_TURN));
   const nextTurnInterest = Math.max(0, nextTurnLoanTotal - projectedOutstandingLoan);
+  const selectedPlayerOwnedProperties = selectedPlayerForDescription
+    ? Object.entries(properties).filter(([, propertyState]) => propertyState.ownerId === selectedPlayerForDescription.id)
+    : [];
+  const selectedPlayerOutstandingLoan = getOutstandingLoan(selectedPlayerForDescription);
+  const selectedPlayerNextTurnLoanTotal = Math.ceil(selectedPlayerOutstandingLoan * (1 + LOAN_RATE_PER_TURN));
+  const selectedPlayerLoanInterestNextTurn = Math.max(0, selectedPlayerNextTurnLoanTotal - selectedPlayerOutstandingLoan);
 
   const releaseExpiredMortgagesOnRoll = (playerId) => {
     const expired = Object.entries(properties).filter(([propId, propState]) => (
@@ -996,6 +1007,41 @@ export default function App() {
     }
   };
 
+  const quitPlayer = (playerId) => {
+    if (!playerId) return;
+
+    const playerName = players.find(p => p.id === playerId)?.name || 'Player';
+    addLog(`${playerName} has quit the game!`, null);
+
+    // Remove player from the game
+    const newPlayersList = players.filter(p => p.id !== playerId);
+    setPlayers(newPlayersList);
+
+    // Release all properties owned by quitting player
+    setProperties(prev => {
+      const up = { ...prev };
+      Object.entries(up).forEach(([propId, propState]) => {
+        if (propState.ownerId === playerId) {
+          delete up[propId];
+        }
+      });
+      return up;
+    });
+
+    setPlayerDescriptionModal(false);
+    setSelectedPlayerForDescriptionId(null);
+
+    // Check if only one player remains
+    if (newPlayersList.length <= 1) {
+      setPhase('GAME_OVER');
+    } else {
+      // Adjust current turn if needed
+      const newTurn = Math.min(turn, newPlayersList.length - 1);
+      setTurn(newTurn);
+      setPhase('ROLL');
+    }
+  };
+
   // --- BOT AI AUTOMATION ---
   useEffect(() => {
     if (activePlayer.isBot && phase === 'ROLL' && !isRolling) {
@@ -1236,11 +1282,11 @@ export default function App() {
       <div className="w-full max-w-[850px] flex justify-between items-start mb-6 px-4">
         <div className="flex flex-col items-center gap-4">
           <DiceArea isActive={turn === 1} dice={dice} isRolling={isRolling} onRoll={rollDice} />
-          {players[1] && <PlayerCard player={players[1]} isActive={turn === 1} logs={floatingLogs} />}
+          {players[1] && <PlayerCard player={players[1]} isActive={turn === 1} logs={floatingLogs} onClick={() => { setSelectedPlayerForDescriptionId(players[1].id); setPlayerDescriptionModal(true); }} />}
         </div>
         <div className="flex flex-col items-center gap-4">
           <DiceArea isActive={turn === 2} dice={dice} isRolling={isRolling} onRoll={rollDice} />
-          {players[2] && <PlayerCard player={players[2]} isActive={turn === 2} logs={floatingLogs} />}
+          {players[2] && <PlayerCard player={players[2]} isActive={turn === 2} logs={floatingLogs} onClick={() => { setSelectedPlayerForDescriptionId(players[2].id); setPlayerDescriptionModal(true); }} />}
         </div>
       </div>
 
@@ -1487,11 +1533,11 @@ export default function App() {
       {/* BOTTOM PLAYERS */}
       <div className="w-full max-w-[850px] flex justify-between items-start mt-6 px-4">
         <div className="flex flex-col items-center gap-4">
-          {players[0] && <PlayerCard player={players[0]} isActive={turn === 0} logs={floatingLogs} />}
+          {players[0] && <PlayerCard player={players[0]} isActive={turn === 0} logs={floatingLogs} onClick={() => { setSelectedPlayerForDescriptionId(players[0].id); setPlayerDescriptionModal(true); }} />}
           <DiceArea isActive={turn === 0} dice={dice} isRolling={isRolling} onRoll={rollDice} />
         </div>
         <div className="flex flex-col items-center gap-4">
-          {players[3] && <PlayerCard player={players[3]} isActive={turn === 3} logs={floatingLogs} />}
+          {players[3] && <PlayerCard player={players[3]} isActive={turn === 3} logs={floatingLogs} onClick={() => { setSelectedPlayerForDescriptionId(players[3].id); setPlayerDescriptionModal(true); }} />}
           <DiceArea isActive={turn === 3} dice={dice} isRolling={isRolling} onRoll={rollDice} />
         </div>
       </div>
@@ -1695,6 +1741,96 @@ export default function App() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PLAYER DESCRIPTION MODAL */}
+      {playerDescriptionModal && selectedPlayerForDescription && (
+        <div className="fixed inset-0 z-[131] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-[500px] shadow-2xl flex flex-col p-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <PawnIcon colorClass={selectedPlayerForDescription.color} size="w-8 h-8" />
+                <h2 className="text-2xl font-black uppercase text-slate-900">{selectedPlayerForDescription.name}</h2>
+              </div>
+              <button onClick={() => { setPlayerDescriptionModal(false); setSelectedPlayerForDescriptionId(null); }} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500"><X size={24} /></button>
+            </div>
+
+            {/* BALANCE */}
+            <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-xl mb-4 border-2 border-green-200">
+              <p className="text-xs font-bold text-slate-600 uppercase mb-1">Current Balance</p>
+              <p className="text-3xl font-black text-green-600">₹{selectedPlayerForDescription.money}</p>
+            </div>
+
+            {/* LOAN INFO */}
+            <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-xl mb-4 border-2 border-red-200">
+              <p className="text-xs font-bold text-slate-600 uppercase mb-2">Loan Details</p>
+              <div className="space-y-1 text-sm font-bold text-slate-700">
+                <div className="flex justify-between items-center">
+                  <span>Amount to Pay</span>
+                  <span className="text-lg font-black text-red-600">Rs. {selectedPlayerOutstandingLoan}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Interest per Turn</span>
+                  <span>{Math.round(LOAN_RATE_PER_TURN * 100)}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Next Turn Interest</span>
+                  <span>Rs. {selectedPlayerLoanInterestNextTurn}</span>
+                </div>
+                <div className="flex justify-between items-center border-t border-red-200 pt-2">
+                  <span>If Not Paid (Next Turn)</span>
+                  <span className="font-black">Rs. {selectedPlayerNextTurnLoanTotal}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* PROPERTIES */}
+            <div className="mb-4">
+              <h3 className="text-lg font-black text-slate-800 mb-3 uppercase">Properties</h3>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {selectedPlayerOwnedProperties.length > 0 ? (
+                  selectedPlayerOwnedProperties.map(([id, p]) => {
+                      const tile = BOARD_DATA[id];
+                      const colorClass = getGroupColor(tile.group) || 'bg-slate-400';
+                      return (
+                        <div key={id} className={`${colorClass} p-3 rounded-lg text-white shadow-md border-2 border-opacity-50 border-white`}>
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-sm">{tile.name}</span>
+                            <div className="flex items-center gap-2">
+                              {p.mortgaged ? (
+                                <span className="bg-red-600 px-2 py-1 rounded text-xs font-black">MORTGAGED</span>
+                              ) : (
+                                <>
+                                  {p.hotel && <span className="bg-yellow-600 px-2 py-1 rounded text-xs font-black">HOTEL</span>}
+                                  {!p.hotel && <span className="bg-green-600 px-2 py-1 rounded text-xs font-black">Houses: {p.houses || 0}</span>}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                ) : (
+                  <div className="text-center text-slate-400 font-bold p-4 border-2 border-dashed border-slate-200 rounded-lg">
+                    No properties owned
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* QUIT BUTTON */}
+            <button
+              onClick={() => {
+                if (window.confirm(`Are you sure you want ${selectedPlayerForDescription.name} to quit the game?`)) {
+                  quitPlayer(selectedPlayerForDescription.id);
+                }
+              }}
+              className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-black text-base uppercase shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <LogOut size={20} /> Quit Game
+            </button>
           </div>
         </div>
       )}
