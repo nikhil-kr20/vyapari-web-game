@@ -272,6 +272,8 @@ export default function App() {
   const [floatingLogs, setFloatingLogs] = useState([]);
   const [manageModal, setManageModal] = useState(false);
   const [loanModal, setLoanModal] = useState(false);
+  const [bankruptcyModal, setBankruptcyModal] = useState(false);
+  const [bankruptcyPlayerId, setBankruptcyPlayerId] = useState(null);
   const [pendingManage, setPendingManage] = useState({ propId: null, action: null });
   const [loanDraft, setLoanDraft] = useState({ takeAmount: '', repayAmount: '' });
 
@@ -318,6 +320,15 @@ export default function App() {
     const limit = getLoanLimit(player);
     const outstanding = getOutstandingLoan(player);
     return Math.max(0, limit - outstanding);
+  };
+
+  const getPlayerMortgageableProperties = (playerId) => {
+    return Object.entries(properties).filter(([id, p]) => {
+      if (p.ownerId !== playerId) return false;
+      const tile = BOARD_DATA[id];
+      // Property can be mortgaged if not already mortgaged, or sold if has houses/hotel
+      return !p.mortgaged || (tile.type === 'property' && (p.houses > 0 || p.hotel));
+    }).length;
   };
 
   const outstandingLoan = getOutstandingLoan(activePlayer);
@@ -392,6 +403,24 @@ export default function App() {
       addLog(`Final warning: redeem before rolling (${thirdTurnNames.join(', ')})`, activePlayer.id);
     }
   }, [turnSerial, phase]);
+
+  // --- BANKRUPTCY CHECK AT TURN START ---
+  useEffect(() => {
+    if (phase !== 'ROLL' || !activePlayer?.id) return;
+
+    // Check if player has negative balance at the start of their turn
+    if (activePlayer.money < 0) {
+      setBankruptcyPlayerId(activePlayer.id);
+      setBankruptcyModal(true);
+
+      // For bot players, auto-declare bankruptcy after a short delay
+      if (activePlayer.isBot) {
+        setTimeout(() => {
+          declareBankruptcy();
+        }, 1000);
+      }
+    }
+  }, [turnSerial, phase, activePlayer?.money, activePlayer?.id]);
 
   const accrueLoanInterestForRoll = (playerId) => {
     const playerRecord = players.find(p => p.id === playerId);
@@ -473,62 +502,13 @@ export default function App() {
 
   // --- BANKRUPTCY CHECK ---
   const checkBankruptcy = (playerId, newMoney) => {
-    if (newMoney >= 0) return false;
-    const playerRecord = players.find(p => p.id === playerId);
-    if (!playerRecord) return true;
-
-    // Try Auto-Liquidate if needed
-    let liquidatedMoney = newMoney;
-    let propsUpdated = { ...properties };
-    const playerProps = Object.keys(propsUpdated).filter(k => propsUpdated[k].ownerId === playerId);
-
-    // Sell Houses first
-    for (let pid of playerProps) {
-      let p = propsUpdated[pid];
-      let tile = BOARD_DATA[pid];
-      while (liquidatedMoney < 0 && (p.houses > 0 || p.hotel)) {
-        if (p.hotel) {
-          p.hotel = false; p.houses = 4; liquidatedMoney += tile.houseCost / 2;
-        } else if (p.houses > 0) {
-          p.houses--; liquidatedMoney += tile.houseCost / 2;
-        }
-      }
+    // Check if balance goes negative
+    if (newMoney < 0) {
+      setBankruptcyPlayerId(playerId);
+      setBankruptcyModal(true);
+      return true;
     }
-    // Mortgage
-    for (let pid of playerProps) {
-      let p = propsUpdated[pid];
-      let tile = BOARD_DATA[pid];
-      if (liquidatedMoney < 0 && !p.mortgaged && Object.keys(propsUpdated).filter(k => BOARD_DATA[k].group === tile.group).every(k => propsUpdated[k].houses === 0 && !propsUpdated[k].hotel)) {
-        p.mortgaged = true;
-        p.mortgageTurns = 0;
-        liquidatedMoney += tile.mortgage;
-      }
-    }
-
-    if (liquidatedMoney >= 0) {
-      setProperties(propsUpdated);
-      setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === playerId); if (idx > -1) up[idx].money = liquidatedMoney; return up; });
-      addLog(`Liquidated to cover debt!`, playerId);
-      return false;
-    }
-
-    addLog(`🚨 BANKRUPT!`, playerId);
-    setProperties(prev => {
-      const updated = { ...prev };
-      Object.keys(updated).forEach(k => {
-        if (updated[k].ownerId === playerId) delete updated[k];
-      });
-      return updated;
-    });
-    setPlayers(prev => prev.filter(p => p.id !== playerId));
-    if (players.length <= 2) {
-      const winner = players.find(p => p.id !== playerId);
-      addLog(`🏆 WINNER!`, winner?.id);
-      setPhase('GAME_OVER');
-    } else {
-      endTurn();
-    }
-    return true;
+    return false;
   };
 
   // --- MOVEMENT ---
@@ -603,7 +583,18 @@ export default function App() {
     }
   };
 
+  const checkAndCloseBankruptcyModal = () => {
+    // Auto-close bankruptcy modal if balance recovered
+    if (bankruptcyModal && activePlayer?.money >= 0) {
+      setBankruptcyModal(false);
+      setBankruptcyPlayerId(null);
+      addLog(`Balance recovered! Ready to roll.`, activePlayer.id);
+    }
+  };
+
   const rollDice = () => {
+    // Block rolling if bankruptcy modal is open and balance is negative
+    if (bankruptcyModal && activePlayer?.money < 0) return addLog("Resolve negative balance first!", activePlayer.id);
     if (isRolling || phase !== 'ROLL') return;
     releaseExpiredMortgagesOnRoll(activePlayer.id);
     setIsRolling(true);
@@ -815,15 +806,12 @@ export default function App() {
       return up;
     });
     addLog(`Paid ₹${amount} rent.`, activePlayer.id);
-    if (!checkBankruptcy(activePlayer.id, activePlayer.money - amount)) {
-      setPhase('MANAGE');
-    }
+    setPhase('MANAGE');
   };
 
   const payBank = (amt, reason) => {
     setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money -= amt; return up; });
     addLog(`Paid Bank ₹${amt}`, activePlayer.id);
-    checkBankruptcy(activePlayer.id, activePlayer.money - amt);
   };
 
   const applyCard = () => {
@@ -892,12 +880,14 @@ export default function App() {
       setProperties(prev => ({ ...prev, [propId]: { ...prop, mortgaged: true, mortgageTurns: 0 } }));
       setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money += tile.mortgage; return up; });
       addLog(`Mortgaged property`, activePlayer.id);
+      checkAndCloseBankruptcyModal();
     } else {
       const cost = Math.floor(tile.mortgage * 1.1);
       if (activePlayer.money >= cost) {
         setProperties(prev => ({ ...prev, [propId]: { ...prop, mortgaged: false, mortgageTurns: 0 } }));
         setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money -= cost; return up; });
         addLog(`Redeemed property`, activePlayer.id);
+        checkAndCloseBankruptcyModal();
       } else {
         addLog("No funds!", activePlayer.id);
       }
@@ -931,6 +921,7 @@ export default function App() {
       });
       addLog(`Sold ${tile.name}.`, activePlayer.id);
     }
+    checkAndCloseBankruptcyModal();
   };
 
   const buildHouse = (propId) => {
@@ -966,6 +957,43 @@ export default function App() {
     if (action === 'build') buildHouse(propId);
     else if (action === 'sell') sellHouse(propId);
     else if (action === 'mortgage') toggleMortgage(propId);
+    // Check if balance recovered after property action
+    setTimeout(checkAndCloseBankruptcyModal, 50);
+  };
+
+  const declareBankruptcy = () => {
+    if (!bankruptcyPlayerId) return;
+
+    const playerName = players.find(p => p.id === bankruptcyPlayerId)?.name || 'Player';
+    addLog(`${playerName} is BANKRUPT!`, null);
+
+    // Remove player from the game and handle turn management
+    const newPlayersList = players.filter(p => p.id !== bankruptcyPlayerId);
+    setPlayers(newPlayersList);
+
+    // Release all properties owned by bankrupt player
+    setProperties(prev => {
+      const up = { ...prev };
+      Object.entries(up).forEach(([propId, propState]) => {
+        if (propState.ownerId === bankruptcyPlayerId) {
+          delete up[propId];
+        }
+      });
+      return up;
+    });
+
+    setBankruptcyModal(false);
+    setBankruptcyPlayerId(null);
+
+    // Check if only one player remains
+    if (newPlayersList.length <= 1) {
+      setPhase('GAME_OVER');
+    } else {
+      // Adjust current turn if needed
+      const newTurn = Math.min(turn, newPlayersList.length - 1);
+      setTurn(newTurn);
+      setPhase('ROLL');
+    }
   };
 
   // --- BOT AI AUTOMATION ---
@@ -1286,6 +1314,48 @@ export default function App() {
               </button>
             </div>
 
+            {/* BANKRUPTCY MODAL - INSIDE BOARD (RENDERS BEFORE ACTION MODAL) */}
+            {bankruptcyModal && bankruptcyPlayerId && (
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 mt-16 shadow-2xl border-[2px] border-red-500 w-full max-w-[220px] scale-90 sm:scale-100 animate-in zoom-in-95 duration-200">
+                <p className="text-center text-red-500 font-bold uppercase tracking-widest text-[10px] mb-1">Warning</p>
+                <h2 className="text-lg font-black text-center mb-2 text-slate-800">Balance Negative!</h2>
+                <p className="text-center text-xs text-slate-600 mb-2 font-bold">
+                  {players.find(p => p.id === bankruptcyPlayerId)?.name || 'Player'}
+                </p>
+                <p className="text-center text-sm font-black text-red-600 mb-3">
+                  ₹{players.find(p => p.id === bankruptcyPlayerId)?.money || 0}
+                </p>
+
+                <div className="space-y-1.5 flex flex-col items-stretch max-w-[150px] mx-auto">
+                  {getPlayerMortgageableProperties(bankruptcyPlayerId) > 0 ? (
+                    <button
+                      onClick={() => setManageModal(true)}
+                      className="w-full bg-blue-500 text-white py-2 rounded-lg font-black text-[10px] uppercase shadow-sm active:scale-95 transition-all hover:bg-blue-600"
+                    >
+                      ⚙️ MANAGE
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="w-full bg-slate-400 text-white py-2 rounded-lg font-black text-[10px] uppercase shadow-sm cursor-not-allowed opacity-60"
+                      title="No properties to mortgage or sell"
+                    >
+                      ⚙️ MANAGE
+                    </button>
+                  )}
+                  <button
+                    onClick={declareBankruptcy}
+                    className="w-full bg-red-500 text-white py-2 rounded-lg font-black text-[10px] uppercase shadow-sm active:scale-95 transition-all hover:bg-red-600"
+                  >
+                    💔 BANKRUPT
+                  </button>
+                </div>
+                {getPlayerMortgageableProperties(bankruptcyPlayerId) === 0 && (
+                  <p className="text-center text-[10px] text-red-500 font-bold mt-2 uppercase">No properties available to manage</p>
+                )}
+              </div>
+            )}
+
             {/* ACTION MODAL - INSIDE BOARD */}
             {(phase.startsWith('ACTION') || (phase === 'ROLL' && activePlayer.inJail && !activePlayer.isBot)) && activePlayer.position !== undefined && (
               <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 mt-16 shadow-2xl border-[2px] border-blue-500 w-full max-w-[220px] scale-90 sm:scale-100 animate-in zoom-in-95 duration-200">
@@ -1537,7 +1607,13 @@ export default function App() {
           <div className="bg-white rounded-3xl w-full max-w-[600px] max-h-[80vh] shadow-2xl flex flex-col p-6 animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black uppercase text-blue-900 border-b-4 border-blue-500 pb-2">Manage Properties</h2>
-              <button onClick={() => setManageModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500"><X size={24} /></button>
+              <button onClick={() => {
+                setManageModal(false);
+                // Reopen bankruptcy modal if balance is still negative
+                if (activePlayer?.money < 0) {
+                  setBankruptcyModal(true);
+                }
+              }} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500"><X size={24} /></button>
             </div>
             <div className="overflow-y-auto pr-2 space-y-3 flex-1">
               {Object.entries(properties)
@@ -1709,6 +1785,8 @@ export default function App() {
           </div>
         </div>
       )}
+
+
 
       {/* PROPERTY MANAGE / VIEW MODAL */}
       {selectedTile && (
