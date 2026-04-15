@@ -115,7 +115,7 @@ const FloatingNotifications = ({ logs, playerId }) => {
 const PlayerCard = ({ player, isActive, logs, onClick }) => (
   <div className="relative">
     <FloatingNotifications logs={logs} playerId={player.id} />
-    <div 
+    <div
       onClick={onClick}
       className={`p-3 sm:p-4 rounded-2xl shadow-xl border-4 w-32 sm:w-48 transition-all duration-300 bg-white cursor-pointer hover:shadow-lg transform hover:scale-105
       ${isActive ? 'border-blue-500 scale-105 shadow-blue-500/30 ring-4 ring-blue-500/20' : 'border-slate-100 opacity-80 hover:border-blue-300'}
@@ -1792,26 +1792,26 @@ export default function App() {
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
                 {selectedPlayerOwnedProperties.length > 0 ? (
                   selectedPlayerOwnedProperties.map(([id, p]) => {
-                      const tile = BOARD_DATA[id];
-                      const colorClass = getGroupColor(tile.group) || 'bg-slate-400';
-                      return (
-                        <div key={id} className={`${colorClass} p-3 rounded-lg text-white shadow-md border-2 border-opacity-50 border-white`}>
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-sm">{tile.name}</span>
-                            <div className="flex items-center gap-2">
-                              {p.mortgaged ? (
-                                <span className="bg-red-600 px-2 py-1 rounded text-xs font-black">MORTGAGED</span>
-                              ) : (
-                                <>
-                                  {p.hotel && <span className="bg-yellow-600 px-2 py-1 rounded text-xs font-black">HOTEL</span>}
-                                  {!p.hotel && <span className="bg-green-600 px-2 py-1 rounded text-xs font-black">Houses: {p.houses || 0}</span>}
-                                </>
-                              )}
-                            </div>
+                    const tile = BOARD_DATA[id];
+                    const colorClass = getGroupColor(tile.group) || 'bg-slate-400';
+                    return (
+                      <div key={id} className={`${colorClass} p-3 rounded-lg text-white shadow-md border-2 border-opacity-50 border-white`}>
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-sm">{tile.name}</span>
+                          <div className="flex items-center gap-2">
+                            {p.mortgaged ? (
+                              <span className="bg-red-600 px-2 py-1 rounded text-xs font-black">MORTGAGED</span>
+                            ) : (
+                              <>
+                                {p.hotel && <span className="bg-yellow-600 px-2 py-1 rounded text-xs font-black">HOTEL</span>}
+                                {!p.hotel && <span className="bg-green-600 px-2 py-1 rounded text-xs font-black">Houses: {p.houses || 0}</span>}
+                              </>
+                            )}
                           </div>
                         </div>
-                      );
-                    })
+                      </div>
+                    );
+                  })
                 ) : (
                   <div className="text-center text-slate-400 font-bold p-4 border-2 border-dashed border-slate-200 rounded-lg">
                     No properties owned
