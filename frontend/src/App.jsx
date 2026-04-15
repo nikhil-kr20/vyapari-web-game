@@ -24,7 +24,7 @@ const BOARD_DATA = [
   { id: 2, type: 'chest', name: 'Community Chest', icon: '📦' },
   { id: 3, type: 'property', name: 'Nagpur', group: 'BROWN', price: 600, houseCost: 500, mortgage: 300, rent: [40, 200, 600, 1800, 3200, 4500] },
   { id: 4, type: 'tax', name: 'Income Tax', icon: '💸', amount: 2000 },
-  { id: 5, type: 'railway', name: 'Mumbai Central', group: 'RAILWAY', price: 2000, mortgage: 1000, rent: [250, 500, 1000, 2000] },
+  { id: 5, type: 'railway', name: 'Mumbai Central', group: 'RAILWAY', price: 2000, mortgage: 1000, rent: [750, 1000, 2000, 4000] },
   { id: 6, type: 'property', name: 'Surat', group: 'LIGHT_BLUE', price: 1000, houseCost: 500, mortgage: 500, rent: [60, 300, 900, 2700, 4000, 5500] },
   { id: 7, type: 'chance', name: 'Chance', icon: '❓' },
   { id: 8, type: 'property', name: 'Vadodara', group: 'LIGHT_BLUE', price: 1000, houseCost: 500, mortgage: 500, rent: [60, 300, 900, 2700, 4000, 5500] },
@@ -34,7 +34,7 @@ const BOARD_DATA = [
   { id: 12, type: 'utility', name: 'Electric Co.', group: 'UTILITY', price: 1500, mortgage: 750 },
   { id: 13, type: 'property', name: 'Aurangabad', group: 'PINK', price: 1400, houseCost: 1000, mortgage: 700, rent: [100, 500, 1500, 4500, 6250, 7500] },
   { id: 14, type: 'property', name: 'Indore', group: 'PINK', price: 1600, houseCost: 1000, mortgage: 800, rent: [120, 600, 1800, 5000, 7000, 9000] },
-  { id: 15, type: 'railway', name: 'Howrah Express', group: 'RAILWAY', price: 2000, mortgage: 1000, rent: [250, 500, 1000, 2000] },
+  { id: 15, type: 'railway', name: 'Howrah Express', group: 'RAILWAY', price: 2000, mortgage: 1000, rent: [750, 1000, 2000, 4000] },
   { id: 16, type: 'property', name: 'Patna', group: 'ORANGE', price: 1800, houseCost: 1000, mortgage: 900, rent: [140, 700, 2000, 5500, 7500, 9500] },
   { id: 17, type: 'chest', name: 'Community Chest', icon: '📦' },
   { id: 18, type: 'property', name: 'Bhopal', group: 'ORANGE', price: 1800, houseCost: 1000, mortgage: 900, rent: [140, 700, 2000, 5500, 7500, 9500] },
@@ -44,7 +44,7 @@ const BOARD_DATA = [
   { id: 22, type: 'chance', name: 'Chance', icon: '❓' },
   { id: 23, type: 'property', name: 'Hyderabad', group: 'RED', price: 2200, houseCost: 1500, mortgage: 1100, rent: [180, 900, 2500, 7000, 8750, 10500] },
   { id: 24, type: 'property', name: 'Chennai', group: 'RED', price: 2400, houseCost: 1500, mortgage: 1200, rent: [200, 1000, 3000, 9000, 11000, 12750] },
-  { id: 25, type: 'railway', name: 'Rajdhani Exp.', group: 'RAILWAY', price: 2000, mortgage: 1000, rent: [250, 500, 1000, 2000] },
+  { id: 25, type: 'railway', name: 'Rajdhani Exp.', group: 'RAILWAY', price: 2000, mortgage: 1000, rent: [750, 1000, 2000, 4000] },
   { id: 26, type: 'property', name: 'Kolkata', group: 'YELLOW', price: 2600, houseCost: 1500, mortgage: 1300, rent: [220, 1100, 3300, 8000, 9750, 11500] },
   { id: 27, type: 'property', name: 'Bengaluru', group: 'YELLOW', price: 2600, houseCost: 1500, mortgage: 1300, rent: [220, 1100, 3300, 8000, 9750, 11500] },
   { id: 28, type: 'utility', name: 'Water Works', group: 'UTILITY', price: 1500, mortgage: 750 },
@@ -54,7 +54,7 @@ const BOARD_DATA = [
   { id: 32, type: 'property', name: 'Chandigarh', group: 'GREEN', price: 3000, houseCost: 2000, mortgage: 1500, rent: [260, 1300, 3900, 9000, 11000, 12750] },
   { id: 33, type: 'chest', name: 'Community Chest', icon: '📦' },
   { id: 34, type: 'property', name: 'Amritsar', group: 'GREEN', price: 3200, houseCost: 2000, mortgage: 1600, rent: [280, 1500, 4500, 10000, 12000, 14000] },
-  { id: 35, type: 'railway', name: 'Shatabdi Exp.', group: 'RAILWAY', price: 2000, mortgage: 1000, rent: [250, 500, 1000, 2000] },
+  { id: 35, type: 'railway', name: 'Shatabdi Exp.', group: 'RAILWAY', price: 2000, mortgage: 1000, rent: [750, 1000, 2000, 4000] },
   { id: 36, type: 'chance', name: 'Chance', icon: '❓' },
   { id: 37, type: 'property', name: 'Mumbai BKC', group: 'DARK_BLUE', price: 3500, houseCost: 2000, mortgage: 1750, rent: [350, 1750, 5000, 11000, 13000, 15000] },
   { id: 38, type: 'tax', name: 'Luxury Tax', icon: '💎', amount: 750 },
@@ -1045,7 +1045,7 @@ export default function App() {
 
               return (
                 <div className={`flex flex-col items-center justify-center w-full h-full p-1 ${textRotateClass}`}>
-                  <span className="text-xs sm:text-2xl mb-0.5">{tile.icon || (tile.type === 'railway' ? '🚂' : '')}</span>
+                  <span className="text-xs sm:text-2xl mb-0.5">{tile.icon || (tile.type === 'railway' ? '' : '')}</span>
                   <span className="text-[min(2vw,7.5px)] sm:text-[0.65rem] font-black uppercase text-center leading-[0.85] px-0.5 w-full break-words">{tile.name}</span>
                   {tile.id === 20 && (
                     <span className="text-[min(1.7vw,6px)] sm:text-[0.55rem] font-black text-green-700 mt-0.5">
@@ -1060,7 +1060,7 @@ export default function App() {
             if (isLeft || isRight) {
               return (
                 <div className="flex flex-col items-center justify-center w-full h-full p-1 gap-0.5 sm:gap-1">
-                  {!colorClass && <span className="text-xs sm:text-xl mb-0.5 z-0">{tile.icon || (tile.type === 'railway' ? '🚂' : '')}</span>}
+                  {!colorClass && <span className="text-xs sm:text-xl mb-0.5 z-0">{tile.icon || (tile.type === 'railway' ? '' : '')}</span>}
                   <span className="text-[min(1.8vw,6.5px)] sm:text-[0.55rem] font-black uppercase text-center leading-tight break-words px-0.5 w-full z-10">{tile.name}</span>
                   {tile.price > 0 && <span className="text-[min(1.6vw,5.5px)] sm:text-[0.45rem] font-bold text-slate-600 z-10">₹{tile.price}</span>}
                 </div>
@@ -1076,7 +1076,7 @@ export default function App() {
                 <div className="relative flex flex-row items-center justify-center w-full h-full p-0.5 gap-1 sm:gap-2">
                   {!colorClass && (tile.icon || tile.type === 'railway') && (
                     <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none z-0">
-                      <span className="text-2xl sm:text-4xl">{tile.icon || (tile.type === 'railway' ? '🚂' : '')}</span>
+                      <span className="text-2xl sm:text-4xl">{tile.icon || (tile.type === 'railway' ? '' : '')}</span>
                     </div>
                   )}
 
@@ -1214,8 +1214,8 @@ export default function App() {
 
             {/* ACTION MODAL - INSIDE BOARD */}
             {(phase.startsWith('ACTION') || (phase === 'ROLL' && activePlayer.inJail && !activePlayer.isBot)) && activePlayer.position !== undefined && (
-              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 mt-16 shadow-2xl border-[2px] border-blue-500 w-full max-w-[220px] scale-90 sm:scale-100 animate-in zoom-in-95 duration-200">
-                <p className="text-center text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-1">Decision Required</p>
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-2 shadow-2xl border-[2px] border-blue-500 w-full max-w-[220px] scale-90 sm:scale-100 animate-in zoom-in-95 duration-200">
+                <p className="text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">Auction of</p>
 
                 {phase === 'ROLL' && activePlayer.inJail && (
                   <>
@@ -1245,14 +1245,14 @@ export default function App() {
 
                 {phase === 'ACTION_AUCTION' && auctionState && (
                   <div className="w-full text-left">
-                    <h2 className="text-[14px] font-black mb-2 uppercase text-center text-purple-900 border-b-2 border-purple-200 pb-1 truncate">{BOARD_DATA[auctionState.propertyId].name}</h2>
-                    <div className="bg-purple-50 p-2 rounded-lg text-center mb-3">
+                    <h2 className="text-[14px] font-black mb-1 uppercase text-center text-purple-900 border-b-2 border-purple-200 pb-1 truncate">{BOARD_DATA[auctionState.propertyId].name}</h2>
+                    <div className="bg-purple-50 p-1 rounded-lg text-center mb-1">
                       <span className="text-[9px] uppercase font-bold text-slate-500">Highest Bid</span>
                       <div className="text-xl font-black text-purple-600">₹{auctionState.highestBid}</div>
                       <div className="text-[10px] font-bold text-slate-600 truncate">{auctionState.highestBidderId ? players.find(p => p.id === auctionState.highestBidderId)?.name : 'None'}</div>
                     </div>
 
-                    <div className="bg-white border-2 border-slate-100 p-2 rounded-lg mb-3 text-center shadow-inner">
+                    <div className="bg-white border-2 border-slate-100 p-1 rounded-lg mb-1 text-center shadow-inner">
                       <span className="text-[9px] uppercase font-bold text-slate-400">Current Bidder</span>
                       <div className="font-black text-sm text-slate-800 truncate">{players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.name}</div>
                       <div className="text-[10px] font-bold text-green-600 mt-0.5">Wallet: ₹{players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.money}</div>
@@ -1669,7 +1669,18 @@ export default function App() {
               <div className="justify-between items-center font- text-sm italic text-white mb-(-2)"><span>₹{selectedTile.price}</span></div>
             </div>
             <div className="p-5 bg-[#fdfdfd] text-slate-800 font-serif">
-              {selectedTile.type === 'property' ? (
+              {selectedTile.type === 'railway' ? (
+                <div className="space-y-2 py-1 font-bold text-[11px] text-slate-700">
+                  <div className="flex justify-between border-b border-slate-100 pb-1"><span>1 railway rent →</span><span>₹750</span></div>
+                  <div className="flex justify-between border-b border-slate-100 pb-1"><span>2 railways rent →</span><span>₹1000</span></div>
+                  <div className="flex justify-between border-b border-slate-100 pb-1"><span>3 railways rent →</span><span>₹2000</span></div>
+                  <div className="flex justify-between pb-1"><span>4 railways rent →</span><span>₹4000</span></div>
+                  <div className="flex flex-col items-center mt-4 pt-2 border-t border-slate-200">
+                    <span className="text-slate-400 uppercase text-[8px] font-black">Mortgage Value</span>
+                    <span className="text-xs font-black italic">₹{selectedTile.mortgage}</span>
+                  </div>
+                </div>
+              ) : selectedTile.type === 'property' ? (
                 <>
                   <div className="flex justify-between items-center mb-3 font-black text-sm italic"><span>RENT Site Only</span><span>₹{selectedTile.rent[0]}</span></div>
                   <div className="space-y-1 text-[11px] font-bold text-slate-600">
