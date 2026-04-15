@@ -988,20 +988,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-blue-50 text-slate-800 flex flex-col items-center justify-center p-0 sm:p-4 font-sans select-none overflow-x-hidden relative">
-
-      {/* FLOATING QUIT BUTTON */}
-      <button 
-        onClick={() => {
-          if (window.confirm("Are you sure you want to quit the game? Progress will be lost.")) {
-            setAppState('setup');
-          }
-        }}
-        className="absolute top-4 right-4 z-[100] bg-white/90 backdrop-blur-sm p-3 rounded-2xl shadow-xl border-2 border-slate-100 hover:border-red-200 hover:bg-red-50 transition-all group"
-        title="Quit Game"
-      >
-        <LogOut size={20} className="text-slate-500 group-hover:text-red-500" />
-      </button>
-
       {/* TOP PLAYERS */}
       <div className="w-full max-w-[850px] flex justify-between items-start mb-6 px-4">
         <div className="flex flex-col items-center gap-4">
@@ -1138,8 +1124,8 @@ export default function App() {
               <div className="absolute inset-0 p-1 flex items-center justify-center pointer-events-none z-30">
                 <div className="grid grid-cols-2 gap-1 w-full h-full max-w-[85%] max-h-[85%] items-center justify-items-center">
                   {occupants.map(p => (
-                    <div key={p.id} className="flex items-center justify-center w-full h-full overflow-hidden">
-                      <PawnIcon id={`pawn-${p.id}`} colorClass={p.color} size="w-full h-full max-w-[14px] max-h-[14px] sm:max-w-[28px] sm:max-h-[28px]" />
+                    <div key={p.id} className="flex items-center justify-center">
+                      <PawnIcon id={`pawn-${p.id}`} colorClass={p.color} size="w-[14px] h-[14px] sm:w-[28px] sm:h-[28px]" />
                     </div>
                   ))}
                 </div>
@@ -1173,7 +1159,7 @@ export default function App() {
                 <Save className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-600 group-active:scale-90" />
                 <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Loan</span>
               </button>
-              <button 
+              <button
                 onClick={() => {
                   if (window.confirm("Quit game and return to menu?")) setAppState('setup');
                 }}
@@ -1721,31 +1707,3 @@ export default function App() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
