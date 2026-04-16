@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import './app.css';
+import './App.css';
 import {
   Dices, MapPin, Wallet, History, AlertCircle, X, Check, ArrowRight, Users,
   User, Bot, Play, Train, Lightbulb, Droplets, HelpCircle, Briefcase,
