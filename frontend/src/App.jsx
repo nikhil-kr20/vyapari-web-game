@@ -195,16 +195,15 @@ const Die = ({ value, isRolling }) => {
   );
 };
 
-const DiceArea = ({ isActive, isRolling, onRoll, dice }) => (
+const DiceArea = ({ isActive, isRolling, onRoll, dice, canRoll }) => (
   <div
-    onClick={isActive && !isRolling ? onRoll : undefined}
-    className={`dice-area${isActive ? ' active' : ' inactive'}`}
+    onClick={isActive && !isRolling && canRoll ? onRoll : undefined}
+    className={`dice-area${isActive ? ' active' : ' inactive'}${isRolling ? ' rolling' : ''}${canRoll ? ' can-float' : ''}`}
   >
     <div className="dice-row">
       <Die value={dice[0]} isRolling={isRolling} />
       <Die value={dice[1]} isRolling={isRolling} />
     </div>
-    {isActive && !isRolling && <span className="dice-label">Click to Roll</span>}
   </div>
 );
 
@@ -223,7 +222,6 @@ const FloatingNotifications = ({ logs, playerId }) => {
 
 const PlayerCard = ({ player, isActive, logs, onClick }) => (
   <div className="player-card-wrap">
-    <FloatingNotifications logs={logs} playerId={player.id} />
     <div
       onClick={onClick}
       className={`player-card${isActive ? ' active' : ' inactive'}`}
@@ -273,6 +271,7 @@ export default function App() {
   const [activeCard, setActiveCard] = useState(null);
   const [selectedTile, setSelectedTile] = useState(null);
   const [floatingLogs, setFloatingLogs] = useState([]);
+  const [transferModal, setTransferModal] = useState(null); // { from, to, amount, description }
   const [manageModal, setManageModal] = useState(false);
   const [loanModal, setLoanModal] = useState(false);
   const [bankruptcyModal, setBankruptcyModal] = useState(false);
@@ -299,6 +298,13 @@ export default function App() {
   const addLog = (msg, playerId = null) => {
     const pid = playerId || players[turn]?.id;
     setFloatingLogs(prev => [...prev, { id: Date.now(), text: msg, playerId: pid }]);
+  };
+
+  // Show a centred transfer popup for 2 seconds.
+  // from/to: { name, color } | 'BANK'
+  const showTransfer = (from, to, amount, description = '') => {
+    setTransferModal({ from, to, amount, description, id: Date.now() });
+    setTimeout(() => setTransferModal(null), 2000);
   };
 
   const activePlayer = players[turn] || {};
@@ -431,7 +437,7 @@ export default function App() {
       up[idx].loan = { ...currentLoan, principal: nextPrincipal, ratePerTurn: LOAN_RATE_PER_TURN, turnsAccrued: (currentLoan.turnsAccrued || 0) + 1 };
       return up;
     });
-    addLog(`Loan +Rs. ${interestAdded} interest`, playerId);
+    showTransfer({ name: player.name, color: player.color }, 'BANK', interestAdded, 'Loan Interest');
   };
 
   const takeLoan = () => {
@@ -451,7 +457,7 @@ export default function App() {
     });
 
     setLoanDraft(prev => ({ ...prev, takeAmount: '' }));
-    addLog(`Loan taken Rs. ${amount}`, activePlayer.id);
+    showTransfer('BANK', { name: activePlayer.name, color: activePlayer.color }, amount, 'Loan Taken');
   };
 
   const repayLoan = () => {
@@ -473,7 +479,7 @@ export default function App() {
     });
 
     setLoanDraft(prev => ({ ...prev, repayAmount: '' }));
-    addLog(`Loan repaid Rs. ${payment}`, activePlayer.id);
+    showTransfer({ name: activePlayer.name, color: activePlayer.color }, 'BANK', payment, 'Loan Repayment');
   };
 
   const checkBankruptcy = (playerId, newMoney) => {
@@ -489,6 +495,7 @@ export default function App() {
     setPhase('MOVE');
     await new Promise(r => setTimeout(r, 500));
     let currentSteps = 0;
+    let passedGo = false;
     const moveOneStep = () => {
       return new Promise((resolve) => {
         setPlayers(prev => {
@@ -498,9 +505,10 @@ export default function App() {
           const newPos = (up[pIndex].position + 1) % 40;
           up[pIndex].position = newPos;
           if (window.gsap) window.gsap.fromTo(`#pawn-${up[pIndex].id}`, { y: 0 }, { y: -20, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.out" });
-          if (newPos === 0 && triggerAction) {
+          if (newPos === 0 && triggerAction && !passedGo) {
+            passedGo = true;
             up[pIndex].money += 2000;
-            addLog(`+₹2000 (GO!)`, activePlayer.id);
+            showTransfer('BANK', { name: up[pIndex].name, color: up[pIndex].color }, 2000, 'Passed GO!');
           }
           return up;
         });
@@ -600,14 +608,13 @@ export default function App() {
       setActiveCard({ type: tile.type.toUpperCase(), ...card });
       setPhase('ACTION_CARD');
     }
-    else if (tile.type === 'tax') { payBank(tile.amount, `Paid ${tile.name}`); setPhase('MANAGE'); }
+    else if (tile.type === 'tax') { payBank(tile.amount, tile.name); setPhase('MANAGE'); }
     else if (tile.id === 20) {
       const parkingReward = bank?.parking || createParkingReward();
       const nextParkingReward = createParkingReward();
       setPlayers(prev => { const up = [...prev]; const pIndex = up.findIndex(p => p.id === activePlayer.id); if (pIndex > -1) up[pIndex].money += parkingReward.amount; return up; });
       setBank(prev => ({ ...prev, parking: nextParkingReward }));
-      addLog(`Parking reward +₹${parkingReward.amount}`, activePlayer.id);
-      if (nextParkingReward.multiplier > 1) addLog(`Next parking: x${nextParkingReward.multiplier} bonus!`);
+      showTransfer('BANK', { name: activePlayer.name, color: activePlayer.color }, parkingReward.amount, `Free Parking Bonus${parkingReward.multiplier > 1 ? ` (x${parkingReward.multiplier})` : ''}`);
       setPhase('MANAGE');
     }
     else if (tile.id === 30) { addLog(`Sent to Jail!`, activePlayer.id); jumpToJail(); }
@@ -619,7 +626,7 @@ export default function App() {
     if (activePlayer.money >= tile.price) {
       setPlayers(prev => { const upP = [...prev]; const idx = upP.findIndex(p => p.id === activePlayer.id); if (idx > -1) upP[idx].money -= tile.price; return upP; });
       setProperties(prev => ({ ...prev, [tile.id]: { ownerId: activePlayer.id, houses: 0, hotel: false, mortgaged: false, mortgageTurns: 0 } }));
-      addLog(`Bought property`, activePlayer.id);
+      showTransfer({ name: activePlayer.name, color: activePlayer.color }, 'BANK', tile.price, `Bought ${tile.name}`);
       setPhase('MANAGE');
     } else { addLog(`No funds!`, activePlayer.id); setPhase('MANAGE'); }
   };
@@ -635,7 +642,7 @@ export default function App() {
     if (winnerObj && winnerObj.money >= amount) {
       setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === winnerId); if (idx > -1) up[idx].money -= amount; return up; });
       setProperties(prev => ({ ...prev, [state.propertyId]: { ownerId: winnerId, houses: 0, hotel: false, mortgaged: false, mortgageTurns: 0 } }));
-      addLog(`${winnerObj.name} wins auction for ₹${amount}!`);
+      showTransfer({ name: winnerObj.name, color: winnerObj.color }, 'BANK', amount, `Auction Win: ${BOARD_DATA[state.propertyId].name}`);
     } else addLog("Auction failed.");
     setPhase('MANAGE');
     setAuctionState(null);
@@ -678,21 +685,31 @@ export default function App() {
       if (up[ownerIdx]) up[ownerIdx].money += amount;
       return up;
     });
-    addLog(`Paid ₹${amount} rent.`, activePlayer.id);
+    showTransfer(
+      { name: activePlayer.name, color: activePlayer.color },
+      { name: owner.name, color: owner.color },
+      amount,
+      `Rent — ${tile.name}`
+    );
     if (!checkBankruptcy(activePlayer.id, activePlayer.money - amount)) setPhase('MANAGE');
   };
 
-  const payBank = (amt, reason) => {
+  const payBank = (amt, reason = '') => {
     setPlayers(prev => { const up = [...prev]; const turnIdx = up.findIndex(p => p.id === activePlayer.id); if (up[turnIdx]) up[turnIdx].money -= amt; return up; });
-    addLog(`Paid Bank ₹${amt}`, activePlayer.id);
+    showTransfer({ name: activePlayer.name, color: activePlayer.color }, 'BANK', amt, reason);
     checkBankruptcy(activePlayer.id, activePlayer.money - amt);
   };
 
   const applyCard = () => {
     const res = activeCard.action(activePlayer);
+    const cardText = activeCard.text;
     setActiveCard(null);
-    if (res.type === 'RECEIVE_BANK') { setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === activePlayer.id); up[idx].money += res.amount; return up; }); setPhase('MANAGE'); }
-    else if (res.type === 'PAY_BANK') { payBank(res.amount, "Card Fine"); setPhase('MANAGE'); }
+    if (res.type === 'RECEIVE_BANK') {
+      setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === activePlayer.id); up[idx].money += res.amount; return up; });
+      showTransfer('BANK', { name: activePlayer.name, color: activePlayer.color }, res.amount, cardText);
+      setPhase('MANAGE');
+    }
+    else if (res.type === 'PAY_BANK') { payBank(res.amount, cardText); setPhase('MANAGE'); }
     else if (res.type === 'MOVE_TO') { const dist = (res.pos >= activePlayer.position) ? res.pos - activePlayer.position : (40 - activePlayer.position) + res.pos; movePlayerStepByStep(dist, true); }
     else if (res.type === 'GOTO_JAIL') jumpToJail();
     else if (res.type === 'GET_OUT_OF_JAIL_FREE') { setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === activePlayer.id); if (up[idx]) up[idx].getOutOfJailFree = (up[idx].getOutOfJailFree || 0) + 1; return up; }); setPhase('MANAGE'); }
@@ -735,14 +752,14 @@ export default function App() {
     if (!prop.mortgaged) {
       setProperties(prev => ({ ...prev, [propId]: { ...prop, mortgaged: true, mortgageTurns: 0 } }));
       setPlayers(prev => { const up = [...prev]; const turnIdx = up.findIndex(p => p.id === activePlayer.id); if (up[turnIdx]) up[turnIdx].money += tile.mortgage; return up; });
-      addLog(`Mortgaged property`, activePlayer.id);
+      showTransfer('BANK', { name: activePlayer.name, color: activePlayer.color }, tile.mortgage, `Mortgaged ${tile.name}`);
       checkAndCloseBankruptcyModal();
     } else {
       const cost = Math.floor(tile.mortgage * 1.1);
       if (activePlayer.money >= cost) {
         setProperties(prev => ({ ...prev, [propId]: { ...prop, mortgaged: false, mortgageTurns: 0 } }));
         setPlayers(prev => { const up = [...prev]; const turnIdx = up.findIndex(p => p.id === activePlayer.id); if (up[turnIdx]) up[turnIdx].money -= cost; return up; });
-        addLog(`Redeemed property`, activePlayer.id);
+        showTransfer({ name: activePlayer.name, color: activePlayer.color }, 'BANK', cost, `Redeemed ${tile.name}`);
         checkAndCloseBankruptcyModal();
       } else addLog("No funds!", activePlayer.id);
     }
@@ -754,15 +771,15 @@ export default function App() {
     if (prop.hotel) {
       setProperties(prev => ({ ...prev, [propId]: { ...prop, hotel: false, houses: 4 } }));
       setPlayers(prev => { const up = [...prev]; const pIndex = up.findIndex(p => p.id === activePlayer.id); if (pIndex > -1) up[pIndex].money += tile.houseCost / 2; return up; });
-      addLog(`Sold HOTEL.`, activePlayer.id);
+      showTransfer('BANK', { name: activePlayer.name, color: activePlayer.color }, tile.houseCost / 2, `Sold HOTEL (${tile.name})`);
     } else if (prop.houses > 0) {
       setProperties(prev => ({ ...prev, [propId]: { ...prop, houses: prop.houses - 1 } }));
       setPlayers(prev => { const up = [...prev]; const pIndex = up.findIndex(p => p.id === activePlayer.id); if (pIndex > -1) up[pIndex].money += tile.houseCost / 2; return up; });
-      addLog(`Sold house.`, activePlayer.id);
+      showTransfer('BANK', { name: activePlayer.name, color: activePlayer.color }, tile.houseCost / 2, `Sold House (${tile.name})`);
     } else {
       setProperties(prev => { const up = { ...prev }; delete up[propId]; return up; });
       setPlayers(prev => { const up = [...prev]; const pIndex = up.findIndex(p => p.id === activePlayer.id); if (pIndex > -1) up[pIndex].money += tile.price / 2; return up; });
-      addLog(`Sold ${tile.name}.`, activePlayer.id);
+      showTransfer('BANK', { name: activePlayer.name, color: activePlayer.color }, tile.price / 2, `Sold ${tile.name}`);
     }
     checkAndCloseBankruptcyModal();
   };
@@ -780,11 +797,11 @@ export default function App() {
       if (prop.houses < 4 && !prop.hotel) {
         setProperties(prev => ({ ...prev, [propId]: { ...prop, houses: prop.houses + 1 } }));
         setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money -= tile.houseCost; return up; });
-        addLog(`House built.`, activePlayer.id);
+        showTransfer({ name: activePlayer.name, color: activePlayer.color }, 'BANK', tile.houseCost, `Built House (${tile.name})`);
       } else if (prop.houses === 4 && !prop.hotel) {
         setProperties(prev => ({ ...prev, [propId]: { ...prop, houses: 0, hotel: true } }));
         setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money -= tile.houseCost; return up; });
-        addLog(`HOTEL built!`, activePlayer.id);
+        showTransfer({ name: activePlayer.name, color: activePlayer.color }, 'BANK', tile.houseCost, `Built HOTEL (${tile.name})`);
       }
     } else addLog("No funds!", activePlayer.id);
   };
@@ -1032,11 +1049,11 @@ export default function App() {
       {/* TOP PLAYERS */}
       <div className="players-row">
         <div className="player-side">
-          <DiceArea isActive={turn === 1} dice={dice} isRolling={isRolling} onRoll={rollDice} />
+          <DiceArea isActive={turn === 1} dice={dice} isRolling={isRolling} onRoll={rollDice} canRoll={turn === 1 && phase === 'ROLL'} />
           {players[1] && <PlayerCard player={players[1]} isActive={turn === 1} logs={floatingLogs} onClick={() => { setSelectedPlayerForDescriptionId(players[1].id); setPlayerDescriptionModal(true); }} />}
         </div>
         <div className="player-side">
-          <DiceArea isActive={turn === 2} dice={dice} isRolling={isRolling} onRoll={rollDice} />
+          <DiceArea isActive={turn === 2} dice={dice} isRolling={isRolling} onRoll={rollDice} canRoll={turn === 2 && phase === 'ROLL'} />
           {players[2] && <PlayerCard player={players[2]} isActive={turn === 2} logs={floatingLogs} onClick={() => { setSelectedPlayerForDescriptionId(players[2].id); setPlayerDescriptionModal(true); }} />}
         </div>
       </div>
@@ -1374,11 +1391,11 @@ export default function App() {
       <div className="players-row bottom">
         <div className="player-side">
           {players[0] && <PlayerCard player={players[0]} isActive={turn === 0} logs={floatingLogs} onClick={() => { setSelectedPlayerForDescriptionId(players[0].id); setPlayerDescriptionModal(true); }} />}
-          <DiceArea isActive={turn === 0} dice={dice} isRolling={isRolling} onRoll={rollDice} />
+          <DiceArea isActive={turn === 0} dice={dice} isRolling={isRolling} onRoll={rollDice} canRoll={turn === 0 && phase === 'ROLL'} />
         </div>
         <div className="player-side">
           {players[3] && <PlayerCard player={players[3]} isActive={turn === 3} logs={floatingLogs} onClick={() => { setSelectedPlayerForDescriptionId(players[3].id); setPlayerDescriptionModal(true); }} />}
-          <DiceArea isActive={turn === 3} dice={dice} isRolling={isRolling} onRoll={rollDice} />
+          <DiceArea isActive={turn === 3} dice={dice} isRolling={isRolling} onRoll={rollDice} canRoll={turn === 3 && phase === 'ROLL'} />
         </div>
       </div>
 
@@ -1811,6 +1828,83 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* ===== TRANSFER MODAL ===== */}
+      {transferModal && (() => {
+        const PLAYER_COLORS = {
+          'bg-red-500': '#ef4444', 'bg-blue-500': '#3b82f6',
+          'bg-green-500': '#22c55e', 'bg-yellow-500': '#eab308',
+        };
+        const isFromBank = transferModal.from === 'BANK';
+        const isToBank = transferModal.to === 'BANK';
+        const fromColor = isFromBank ? '#64748b' : (PLAYER_COLORS[transferModal.from?.color] || '#64748b');
+        const toColor = isToBank ? '#64748b' : (PLAYER_COLORS[transferModal.to?.color] || '#64748b');
+        const isReceiving = isFromBank; // player is getting money from bank
+        const amountColor = isToBank ? '#ef4444' : '#22c55e';
+
+        const TokenBubble = ({ label, color, isBank }) => (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+            <div style={{
+              width: '3rem', height: '3rem', borderRadius: '9999px',
+              backgroundColor: isBank ? '#f1f5f9' : color,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: `3px solid ${isBank ? '#cbd5e1' : color}`,
+              boxShadow: `0 0 0 4px ${isBank ? 'rgba(100,116,139,0.15)' : color + '33'}`,
+              fontSize: isBank ? '1.4rem' : '1.1rem',
+            }}>
+              {isBank ? '🏦' : (
+                <svg viewBox="0 0 24 24" fill="currentColor"
+                  style={{ color: 'white', width: '1.5rem', height: '1.5rem' }}>
+                  <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5.7.5 1.2 1.2 1.5 2h.5a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-1.2l-1.3 6h2.5a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h2.5l-1.3-6H6a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h.5c.3-.8.8-1.5 1.5-2-1.2-.7-2-2-3.5a4 4 0 0 1 4-4z" />
+                </svg>
+              )}
+            </div>
+            <span style={{ fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase', color: '#475569', letterSpacing: '0.05em', maxWidth: '4rem', textAlign: 'center', lineHeight: 1.2 }}>
+              {label}
+            </span>
+          </div>
+        );
+
+        return (
+          <div className="transfer-modal-backdrop">
+            <div className="transfer-modal" key={transferModal.id}>
+              {/* PARTICIPANTS ROW */}
+              <div className="transfer-modal-row">
+                <TokenBubble
+                  label={isFromBank ? 'Bank' : transferModal.from?.name}
+                  color={fromColor}
+                  isBank={isFromBank}
+                />
+                <div className="transfer-arrow">
+                  <div className="transfer-arrow-line" />
+                  <div className="transfer-arrow-head">▶</div>
+                </div>
+                <TokenBubble
+                  label={isToBank ? 'Bank' : transferModal.to?.name}
+                  color={toColor}
+                  isBank={isToBank}
+                />
+              </div>
+
+              {/* AMOUNT */}
+              <div className="transfer-amount" style={{ color: amountColor }}>
+                {isToBank ? '−' : '+'}₹{transferModal.amount.toLocaleString()}
+              </div>
+
+              {/* DESCRIPTION */}
+              {transferModal.description && (
+                <div className="transfer-description">{transferModal.description}</div>
+              )}
+
+              {/* PROGRESS BAR */}
+              <div className="transfer-progress-bar">
+                <div className="transfer-progress-fill" />
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
+
   );
 }
