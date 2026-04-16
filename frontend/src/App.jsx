@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import './app.css';
 import {
   Dices, MapPin, Wallet, History, AlertCircle, X, Check, ArrowRight, Users,
   User, Bot, Play, Train, Lightbulb, Droplets, HelpCircle, Briefcase,
@@ -89,15 +90,12 @@ const CARDS = {
   ]
 };
 
-const getGroupColor = (group) => {
-  switch (group) {
-    case 'BROWN': return 'bg-[#8B4513]'; case 'LIGHT_BLUE': return 'bg-[#87CEEB]';
-    case 'PINK': return 'bg-[#FF69B4]'; case 'ORANGE': return 'bg-[#FFA500]';
-    case 'RED': return 'bg-[#FF0000]'; case 'YELLOW': return 'bg-[#FFD700]';
-    case 'GREEN': return 'bg-[#008000]'; case 'DARK_BLUE': return 'bg-[#00008B]';
-    default: return null;
-  }
+const GROUP_COLORS = {
+  BROWN: '#8B4513', LIGHT_BLUE: '#87CEEB', PINK: '#FF69B4', ORANGE: '#FFA500',
+  RED: '#FF0000', YELLOW: '#FFD700', GREEN: '#008000', DARK_BLUE: '#00008B',
 };
+
+const getGroupColor = (group) => GROUP_COLORS[group] || null;
 
 const getGridStyle = (id) => {
   if (id === 0) return { gridColumn: 11, gridRow: 11 };
@@ -111,12 +109,12 @@ const getGridStyle = (id) => {
   return {};
 };
 
-const getOwnershipMarkerStyle = (id) => {
-  if (id >= 1 && id <= 9) return "top-[-18px] sm:top-[-26px] left-1/2 -translate-x-1/2";
-  if (id >= 11 && id <= 19) return "right-[-18px] sm:right-[-26px] top-1/2 -translate-y-1/2";
-  if (id >= 21 && id <= 29) return "bottom-[-18px] sm:bottom-[-26px] left-1/2 -translate-x-1/2";
-  if (id >= 31 && id <= 39) return "left-[-18px] sm:left-[-26px] top-1/2 -translate-y-1/2";
-  return "hidden";
+const getOwnershipMarkerClass = (id) => {
+  if (id >= 1 && id <= 9) return 'own-bottom';
+  if (id >= 11 && id <= 19) return 'own-left';
+  if (id >= 21 && id <= 29) return 'own-top';
+  if (id >= 31 && id <= 39) return 'own-right';
+  return 'hidden';
 };
 
 const getPawnStackStyle = (index, total) => {
@@ -131,7 +129,7 @@ const getPawnStackStyle = (index, total) => {
 };
 
 // --- PURE UI COMPONENTS ---
-const PawnIcon = ({ colorClass, size = "w-4 h-4 sm:w-6 sm:h-6", id }) => {
+const PawnIcon = ({ colorClass, size = "w-4 h-4", id }) => {
   const colorMap = {
     'bg-red-500': '#ef4444',
     'bg-blue-500': '#3b82f6',
@@ -139,8 +137,26 @@ const PawnIcon = ({ colorClass, size = "w-4 h-4 sm:w-6 sm:h-6", id }) => {
     'bg-yellow-500': '#eab308',
   };
   const fillColor = colorMap[colorClass] || '#334155';
+  // size class like "w-4 h-4" → parse px
+  const sizeMap = {
+    'w-4 h-4': '16px', 'w-5 h-5': '20px', 'w-6 h-6': '24px',
+    'w-7 h-7': '28px', 'w-8 h-8': '32px', 'w-16 h-16': '64px',
+  };
+  const [wClass] = size.split(' ');
+  const pixelSize = sizeMap[size] || (wClass.includes('[') ? wClass.replace('w-[','').replace(']','') : '24px');
   return (
-    <svg id={id} viewBox="0 0 24 24" fill="currentColor" style={{ color: fillColor }} className={`${size} drop-shadow-lg transition-colors duration-200`}>
+    <svg
+      id={id}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      style={{
+        color: fillColor,
+        width: pixelSize,
+        height: pixelSize,
+        filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))',
+        flexShrink: 0,
+      }}
+    >
       <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5.7.5 1.2 1.2 1.5 2h.5a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-1.2l-1.3 6h2.5a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h2.5l-1.3-6H6a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h.5c.3-.8.8-1.5 1.5-2-1.2-.7-2-2-2-3.5a4 4 0 0 1 4-4z" />
     </svg>
   );
@@ -165,11 +181,13 @@ const Die = ({ value, isRolling }) => {
   const currentVal = isRolling ? fakeValue : value;
 
   return (
-    <div className={`w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-xl shadow-lg border-2 border-slate-200 flex items-center justify-center transition-all duration-150 ${isRolling ? 'animate-die-roll' : 'hover:scale-110 active:scale-95'}`}>
-      <div className="grid grid-cols-3 grid-rows-3 gap-1 w-8 h-8 sm:w-10 sm:h-10">
+    <div className={`die${isRolling ? ' rolling' : ''}`}
+      style={!isRolling ? { cursor: 'pointer' } : {}}
+    >
+      <div className="die-grid">
         {[...Array(9)].map((_, i) => (
-          <div key={i} className="flex items-center justify-center">
-            {dots[currentVal]?.includes(i) && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-slate-800 rounded-full shadow-inner" />}
+          <div key={i} className="die-cell">
+            {dots[currentVal]?.includes(i) && <div className="die-dot" />}
           </div>
         ))}
       </div>
@@ -178,21 +196,24 @@ const Die = ({ value, isRolling }) => {
 };
 
 const DiceArea = ({ isActive, isRolling, onRoll, dice }) => (
-  <div onClick={isActive && !isRolling ? onRoll : undefined} className={`transition-all duration-500 transform ${isActive ? 'opacity-100 scale-100 translate-y-0 cursor-pointer' : 'opacity-0 scale-50 translate-y-4 pointer-events-none'} flex flex-col items-center gap-2`}>
-    <div className="flex gap-3">
+  <div
+    onClick={isActive && !isRolling ? onRoll : undefined}
+    className={`dice-area${isActive ? ' active' : ' inactive'}`}
+  >
+    <div className="dice-row">
       <Die value={dice[0]} isRolling={isRolling} />
       <Die value={dice[1]} isRolling={isRolling} />
     </div>
-    {isActive && !isRolling && <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest animate-pulse">Click to Roll</span>}
+    {isActive && !isRolling && <span className="dice-label">Click to Roll</span>}
   </div>
 );
 
 const FloatingNotifications = ({ logs, playerId }) => {
   const playerLogs = logs.filter(log => log.playerId === playerId);
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 pointer-events-none flex flex-col items-center gap-1 z-[200]">
+    <div className="float-notif-container">
       {playerLogs.map(log => (
-        <div key={log.id} className="bg-slate-800/90 text-white text-[10px] sm:text-xs font-bold p-2 rounded-lg shadow-lg animate-float-up-vanish border-l-4 border-blue-400 backdrop-blur-sm whitespace-nowrap">
+        <div key={log.id} className="float-notif">
           {log.text}
         </div>
       ))}
@@ -201,16 +222,19 @@ const FloatingNotifications = ({ logs, playerId }) => {
 };
 
 const PlayerCard = ({ player, isActive, logs, onClick }) => (
-  <div className="relative">
+  <div className="player-card-wrap">
     <FloatingNotifications logs={logs} playerId={player.id} />
-    <div onClick={onClick} className={`p-3 sm:p-4 rounded-2xl shadow-xl border-4 w-32 sm:w-48 transition-all duration-300 bg-white cursor-pointer hover:shadow-lg transform hover:scale-105 ${isActive ? 'border-blue-500 scale-105 shadow-blue-500/30 ring-4 ring-blue-500/20' : 'border-slate-100 opacity-80 hover:border-blue-300'}`}>
-      <div className="flex items-center gap-2 mb-2">
-        <PawnIcon colorClass={player.color} size="w-5 h-5 sm:w-7 sm:h-7" />
-        <span className={`font-black text-xs sm:text-lg truncate ${isActive ? 'text-blue-900' : 'text-slate-600'}`}>
-          {player.name} {player.inJail && <ShieldAlert size={14} className="inline text-red-500 ml-1" />}
+    <div
+      onClick={onClick}
+      className={`player-card${isActive ? ' active' : ' inactive'}`}
+    >
+      <div className="player-card-header">
+        <PawnIcon colorClass={player.color} size="w-5 h-5" />
+        <span className={`player-name${isActive ? ' active' : ' inactive'}`}>
+          {player.name} {player.inJail && <ShieldAlert size={14} style={{ display: 'inline', color: '#ef4444', marginLeft: '0.25rem' }} />}
         </span>
       </div>
-      <div className={`font-black text-sm sm:text-2xl flex items-center gap-1.5 ${isActive ? 'text-green-600' : 'text-slate-500'}`}>
+      <div className={`player-money${isActive ? ' active' : ' inactive'}`}>
         <Wallet size={18} /> ₹{player.money}
       </div>
     </div>
@@ -879,24 +903,24 @@ export default function App() {
   // --- SETUP SCREEN ---
   if (appState === 'setup') {
     return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4 font-sans text-slate-800">
-        <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md border border-blue-100 flex flex-col items-center">
-          <h1 className="text-5xl font-black text-blue-600 mb-2 tracking-tighter">VYAPARI</h1>
-          <p className="text-slate-400 mb-8 font-medium italic text-center">Complete Indian Edition</p>
-          <div className="w-full space-y-6 mb-8 text-center">
+      <div className="setup-screen">
+        <div className="setup-card">
+          <h1 className="setup-title">VYAPARI</h1>
+          <p className="setup-subtitle">Complete Indian Edition</p>
+          <div className="setup-content">
 
             {/* STARTING MONEY INPUT */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Starting Money</h3>
-              <div className="flex items-center justify-center gap-3">
+            <div className="setup-section">
+              <span className="setup-label">Starting Money</span>
+              <div className="money-input-row">
                 <button
                   onClick={() => setStartingMoney(prev => Math.max(1500, prev - 500))}
-                  className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-all text-blue-600"
+                  className="money-input-btn"
                 >
                   <Minus size={18} strokeWidth={3} />
                 </button>
-                <div className="flex-1 bg-blue-50 border-2 border-blue-100 rounded-2xl py-3 px-4 flex items-center justify-center relative overflow-hidden group">
-                  <span className="text-xl font-black text-blue-600 z-10">₹{startingMoney.toLocaleString()}</span>
+                <div className="money-display">
+                  <span>₹{startingMoney.toLocaleString()}</span>
                   <input
                     type="range"
                     min="1500"
@@ -904,30 +928,37 @@ export default function App() {
                     step="500"
                     value={startingMoney}
                     onChange={(e) => setStartingMoney(parseInt(e.target.value))}
-                    className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                    className="money-range-input"
                   />
                 </div>
                 <button
                   onClick={() => setStartingMoney(prev => Math.min(20000, prev + 500))}
-                  className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-all text-blue-600"
+                  className="money-input-btn"
                 >
                   <Plus size={18} strokeWidth={3} />
                 </button>
               </div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Adjust range: 1.5K - 20K</p>
+              <p className="setup-hint" style={{ marginTop: '0.5rem' }}>Adjust range: 1.5K - 20K</p>
             </div>
 
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Game Mode</h3>
-              <div className="flex gap-4 w-full">
-                <button onClick={() => setGameMode('bot')} className={`flex-1 py-3 px-2 rounded-xl font-bold flex flex-col items-center gap-1 transition-all ${gameMode === 'bot' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400'}`}><Bot size={20} /><span className="text-xs uppercase">Single Player</span></button>
-                <button onClick={() => setGameMode('multi')} className={`flex-1 py-3 px-2 rounded-xl font-bold flex flex-col items-center gap-1 transition-all ${gameMode === 'multi' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400'}`}><Users size={20} /><span className="text-xs uppercase">Multiplayer</span></button>
+            <div className="setup-section">
+              <span className="setup-label">Game Mode</span>
+              <div className="mode-row">
+                <button onClick={() => setGameMode('bot')} className={`mode-btn ${gameMode === 'bot' ? 'active' : 'inactive'}`}>
+                  <Bot size={20} /><span>Single Player</span>
+                </button>
+                <button onClick={() => setGameMode('multi')} className={`mode-btn ${gameMode === 'multi' ? 'active' : 'inactive'}`}>
+                  <Users size={20} /><span>Multiplayer</span>
+                </button>
               </div>
             </div>
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Total Players</h3>
-              <div className="flex gap-4 w-full">
-                {[2, 3, 4].map(n => (<button key={n} onClick={() => setPlayerCount(n)} className={`flex-1 py-4 rounded-2xl font-black text-xl transition-all ${playerCount === n ? 'bg-blue-600 text-white shadow-lg scale-105' : 'bg-slate-100 text-slate-400'}`}>{n}</button>))}
+
+            <div className="setup-section">
+              <span className="setup-label">Total Players</span>
+              <div className="player-count-row">
+                {[2, 3, 4].map(n => (
+                  <button key={n} onClick={() => setPlayerCount(n)} className={`count-btn ${playerCount === n ? 'active' : 'inactive'}`}>{n}</button>
+                ))}
               </div>
             </div>
           </div>
@@ -960,7 +991,7 @@ export default function App() {
               setFloatingLogs([]);
               setAppState('game');
             }}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black text-xl shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
+            className="start-btn"
           >
             <Play size={24} /> START GAME
           </button>
@@ -973,12 +1004,22 @@ export default function App() {
   if (phase === 'GAME_OVER') {
     const winner = players[0];
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-red-600 flex items-center justify-center p-4 font-sans">
-        <div className="text-center">
-          <div className="text-8xl mb-4">🏆</div>
-          <h1 className="text-6xl font-black text-white mb-2 drop-shadow-lg">WINNER!</h1>
-          {winner && <><PawnIcon colorClass={winner.color} size="w-16 h-16 mx-auto my-4" /><h2 className="text-4xl font-black text-white mb-4">{winner.name}</h2><p className="text-2xl font-bold text-white/80">₹{winner.money} remaining</p></>}
-          <button onClick={() => { setAppState('setup'); setGameState({ players: [], properties: {}, bank: { houses: 32, hotels: 12, parking: createParkingReward() }, currentTurn: 0, turnSerial: 0, phase: 'ROLL', dice: [1, 1] }); }} className="mt-8 bg-white text-orange-600 py-4 px-12 rounded-2xl font-black text-xl shadow-xl hover:scale-105 transition-all flex items-center gap-3 mx-auto">
+      <div className="game-over-screen">
+        <div className="game-over-content">
+          <div className="game-over-trophy">🏆</div>
+          <h1 className="game-over-title">WINNER!</h1>
+          {winner && <>
+            <PawnIcon colorClass={winner.color} size="w-16 h-16" />
+            <h2 className="game-over-name">{winner.name}</h2>
+            <p className="game-over-money">₹{winner.money} remaining</p>
+          </>}
+          <button
+            onClick={() => {
+              setAppState('setup');
+              setGameState({ players: [], properties: {}, bank: { houses: 32, hotels: 12, parking: createParkingReward() }, currentTurn: 0, turnSerial: 0, phase: 'ROLL', dice: [1, 1] });
+            }}
+            className="play-again-btn"
+          >
             <RefreshCw size={24} /> PLAY AGAIN
           </button>
         </div>
@@ -987,21 +1028,21 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-50 text-slate-800 flex flex-col items-center justify-center p-0 sm:p-4 font-sans select-none overflow-x-hidden relative">
+    <div className="game-screen">
       {/* TOP PLAYERS */}
-      <div className="w-full max-w-[850px] flex justify-between items-start mb-6 px-4">
-        <div className="flex flex-col items-center gap-4">
+      <div className="players-row">
+        <div className="player-side">
           <DiceArea isActive={turn === 1} dice={dice} isRolling={isRolling} onRoll={rollDice} />
           {players[1] && <PlayerCard player={players[1]} isActive={turn === 1} logs={floatingLogs} onClick={() => { setSelectedPlayerForDescriptionId(players[1].id); setPlayerDescriptionModal(true); }} />}
         </div>
-        <div className="flex flex-col items-center gap-4">
+        <div className="player-side">
           <DiceArea isActive={turn === 2} dice={dice} isRolling={isRolling} onRoll={rollDice} />
           {players[2] && <PlayerCard player={players[2]} isActive={turn === 2} logs={floatingLogs} onClick={() => { setSelectedPlayerForDescriptionId(players[2].id); setPlayerDescriptionModal(true); }} />}
         </div>
       </div>
 
       {/* BOARD CONTAINER */}
-      <div className="relative w-full max-w-[min(100vw-16px,780px)] aspect-square bg-[#ceebd7] rounded-none sm:rounded-xl shadow-2xl border-none grid overflow-visible" style={{ gridTemplateColumns: 'minmax(0, 1.6fr) repeat(9, minmax(0, 1fr)) minmax(0, 1.6fr)', gridTemplateRows: 'minmax(0, 1.6fr) repeat(9, minmax(0, 1fr)) minmax(0, 1.6fr)' }}>
+      <div className="board-container">
         {BOARD_DATA.map((tile) => {
           const style = getGridStyle(tile.id);
           const isCorner = tile.id % 10 === 0;
@@ -1010,59 +1051,49 @@ export default function App() {
           const isTop = tile.id >= 21 && tile.id <= 29;
           const isRight = tile.id >= 31 && tile.id <= 39;
 
-          let bandClass = "hidden";
-          let contentContainerClass = "inset-0";
+          let bandClass = 'hidden';
+          let contentClass = 'content-default';
 
           if (tile.group) {
-            if (isBottom) {
-              bandClass = "top-0 left-0 w-full h-[18%] border-b-[1.5px]";
-              contentContainerClass = "top-[18%] left-0 w-full h-[82%]";
-            } else if (isLeft) {
-              bandClass = "top-0 right-0 w-[18%] h-full border-l-[1.5px] flex-col";
-              contentContainerClass = "top-0 left-0 w-[82%] h-full";
-            } else if (isTop) {
-              bandClass = "bottom-0 left-0 w-full h-[18%] border-t-[1.5px]";
-              contentContainerClass = "top-0 left-0 w-full h-[82%]";
-            } else if (isRight) {
-              bandClass = "top-0 left-0 w-[18%] h-full border-r-[1.5px] flex-col";
-              contentContainerClass = "top-0 right-0 w-[82%] h-full";
-            }
+            if (isBottom)      { bandClass = 'band-bottom'; contentClass = 'content-bottom'; }
+            else if (isLeft)   { bandClass = 'band-left';   contentClass = 'content-left'; }
+            else if (isTop)    { bandClass = 'band-top';    contentClass = 'content-top'; }
+            else if (isRight)  { bandClass = 'band-right';  contentClass = 'content-right'; }
           }
 
           const owner = properties[tile.id] ? players.find(p => p.id === properties[tile.id].ownerId) : null;
           const propData = properties[tile.id];
           const occupants = players.filter(p => p.position === tile.id);
-          const colorClass = getGroupColor(tile.group);
+          const groupColor = getGroupColor(tile.group);
 
-          // RENDER CONTENT BASED ON TILE POSITION
           const renderTileContent = () => {
             if (isCorner) {
-              let textRotateClass = "";
-              if (tile.id === 10) textRotateClass = "rotate-45";
-              if (tile.id === 20) textRotateClass = "rotate-[135deg]";
-              if (tile.id === 30) textRotateClass = "-rotate-[135deg]";
-              if (tile.id === 0) textRotateClass = "-rotate-45";
+              let rotateStyle = {};
+              if (tile.id === 10) rotateStyle = { transform: 'rotate(45deg)' };
+              if (tile.id === 20) rotateStyle = { transform: 'rotate(135deg)' };
+              if (tile.id === 30) rotateStyle = { transform: 'rotate(-135deg)' };
+              if (tile.id === 0)  rotateStyle = { transform: 'rotate(-45deg)' };
 
               return (
-                <div className={`flex flex-col items-center justify-center w-full h-full p-1 ${textRotateClass}`}>
-                  <span className="text-xs sm:text-2xl mb-0.5">{tile.icon || (tile.type === 'railway' ? '' : '')}</span>
-                  <span className="text-[min(2vw,7.5px)] sm:text-[0.65rem] font-black uppercase text-center leading-[0.85] px-0.5 w-full break-words">{tile.name}</span>
+                <div className="tile-corner-content" style={rotateStyle}>
+                  <span style={{ fontSize: 'clamp(10px, 2.5vw, 24px)', marginBottom: '1px' }}>{tile.icon || ''}</span>
+                  <span className="tile-text-main">{tile.name}</span>
                   {tile.id === 20 && (
-                    <span className="text-[min(1.7vw,6px)] sm:text-[0.55rem] font-black text-green-700 mt-0.5">
+                    <span style={{ fontSize: 'clamp(5px, 1.7vw, 6px)', fontWeight: 900, color: '#15803d', marginTop: '2px' }}>
                       ₹{(bank?.parking?.amount || 500).toLocaleString()}
                     </span>
                   )}
-                  {tile.price > 0 && <span className="text-[min(1.8vw,6.5px)] sm:text-[0.55rem] font-bold text-slate-600 mt-1">₹{tile.price}</span>}
+                  {tile.price > 0 && <span className="tile-text-price">₹{tile.price}</span>}
                 </div>
               );
             }
 
             if (isLeft || isRight) {
               return (
-                <div className="flex flex-col items-center justify-center w-full h-full p-1 gap-0.5 sm:gap-1">
-                  {!colorClass && <span className="text-xs sm:text-xl mb-0.5 z-0">{tile.icon || (tile.type === 'railway' ? '' : '')}</span>}
-                  <span className="text-[min(1.8vw,6.5px)] sm:text-[0.55rem] font-black uppercase text-center leading-tight break-words px-0.5 w-full z-10">{tile.name}</span>
-                  {tile.price > 0 && <span className="text-[min(1.6vw,5.5px)] sm:text-[0.45rem] font-bold text-slate-600 z-10">₹{tile.price}</span>}
+                <div className="tile-side-content">
+                  {!groupColor && <span style={{ fontSize: 'clamp(8px, 2vw, 20px)', marginBottom: '2px', zIndex: 0 }}>{tile.icon || ''}</span>}
+                  <span className="tile-text-small">{tile.name}</span>
+                  {tile.price > 0 && <span style={{ fontSize: 'clamp(4px, 1.6vw, 5.5px)', fontWeight: 700, color: '#475569', zIndex: 10 }}>₹{tile.price}</span>}
                 </div>
               );
             }
@@ -1073,24 +1104,52 @@ export default function App() {
               const rightText = isB ? (tile.price > 0 ? `₹${tile.price}` : '') : tile.name;
 
               return (
-                <div className="relative flex flex-row items-center justify-center w-full h-full p-0.5 gap-1 sm:gap-2">
-                  {!colorClass && (tile.icon || tile.type === 'railway') && (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none z-0">
-                      <span className="text-2xl sm:text-4xl">{tile.icon || (tile.type === 'railway' ? '' : '')}</span>
+                <div className="tile-top-bottom-content">
+                  {!groupColor && (tile.icon || tile.type === 'railway') && (
+                    <div className="tile-icon-bg">
+                      <span style={{ fontSize: 'clamp(12px, 3vw, 36px)' }}>{tile.icon || ''}</span>
                     </div>
                   )}
 
                   {leftText && (
-                    <div className="flex items-center justify-center h-full z-10">
-                      <span style={{ writingMode: 'vertical-rl', transform: isB ? 'rotate(180deg)' : 'none' }} className={`text-[min(1.8vw,6.5px)] sm:text-[0.55rem] font-black uppercase text-center leading-tight tracking-wider ${isB && rightText ? 'text-slate-800' : 'text-slate-600'}`}>
+                    <div className="tile-vertical-box">
+                      <span
+                        style={{ writingMode: 'vertical-rl', transform: isB ? 'rotate(180deg)' : 'none' }}
+                        className={`tile-vertical-text${isB && rightText ? '' : ' text-slate-600'}`}
+                        styles={{
+                          writingMode: 'vertical-rl',
+                          transform: isB ? 'rotate(180deg)' : 'none',
+                          fontSize: 'clamp(4px, 1.8vw, 6.5px)',
+                          fontWeight: 900,
+                          textTransform: 'uppercase',
+                          textAlign: 'center',
+                          lineHeight: 1.25,
+                          letterSpacing: '0.05em',
+                          color: isB && rightText ? '#1e293b' : '#475569',
+                          zIndex: 10,
+                        }}
+                      >
                         {leftText}
                       </span>
                     </div>
                   )}
 
                   {rightText && (
-                    <div className="flex items-center justify-center h-full z-10">
-                      <span style={{ writingMode: 'vertical-rl', transform: isB ? 'rotate(180deg)' : 'none' }} className={`text-[min(1.8vw,6.5px)] sm:text-[0.55rem] font-black uppercase text-center leading-tight tracking-wider ${isB ? 'text-slate-600' : 'text-slate-800'}`}>
+                    <div className="tile-vertical-box">
+                      <span
+                        style={{
+                          writingMode: 'vertical-rl',
+                          transform: isB ? 'rotate(180deg)' : 'none',
+                          fontSize: 'clamp(4px, 1.8vw, 6.5px)',
+                          fontWeight: 900,
+                          textTransform: 'uppercase',
+                          textAlign: 'center',
+                          lineHeight: 1.25,
+                          letterSpacing: '0.05em',
+                          color: isB ? '#475569' : '#1e293b',
+                          zIndex: 10,
+                        }}
+                      >
                         {rightText}
                       </span>
                     </div>
@@ -1101,31 +1160,40 @@ export default function App() {
           };
 
           return (
-            <div key={tile.id} className="relative z-10 border-[0.5px] border-slate-800 bg-white overflow-visible flex items-center justify-center" style={style} onClick={() => setSelectedTile(tile)}>
+            <div key={tile.id} className="board-tile" style={style} onClick={() => setSelectedTile(tile)}>
 
               {/* COLOR BAND */}
-              {colorClass && (
-                <div className={`absolute ${bandClass} ${colorClass} border-slate-800 flex items-center justify-center gap-0.5 z-10`}>
-                  {propData?.houses > 0 && [...Array(propData.houses)].map((_, i) => <Home key={i} size={8} className="text-white fill-white" />)}
-                  {propData?.hotel && <Hotel size={14} className="text-black fill-black" />}
+              {groupColor && (
+                <div
+                  className={`color-band ${bandClass}`}
+                  style={{ backgroundColor: groupColor }}
+                >
+                  {propData?.houses > 0 && [...Array(propData.houses)].map((_, i) => <Home key={i} size={8} style={{ color: 'white', fill: 'white' }} />)}
+                  {propData?.hotel && <Hotel size={14} style={{ color: 'black', fill: 'black' }} />}
                 </div>
               )}
 
               {/* CONTENT CONTAINER */}
-              <div className={`absolute ${contentContainerClass}`}>
+              <div className={contentClass}>
                 {renderTileContent()}
               </div>
 
               {/* OVERLAYS */}
-              {propData?.mortgaged && (<div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-10 text-white font-black text-[8px] uppercase rotate-[-45deg]">Mortgaged</div>)}
-              {owner && !isCorner && (<div className={`absolute z-20 ${getOwnershipMarkerStyle(tile.id)}`}><PawnIcon colorClass={owner.color} size="w-4 h-4 sm:w-7 sm:h-7" /></div>)}
+              {propData?.mortgaged && (
+                <div className="mortgaged-overlay">Mortgaged</div>
+              )}
+              {owner && !isCorner && (
+                <div className={`ownership-marker ${getOwnershipMarkerClass(tile.id)}`}>
+                  <PawnIcon colorClass={owner.color} size="w-4 h-4" />
+                </div>
+              )}
 
               {/* PAWNS */}
-              <div className="absolute inset-0 p-1 flex items-center justify-center pointer-events-none z-30">
-                <div className="grid grid-cols-2 gap-1 w-full h-full max-w-[85%] max-h-[85%] items-center justify-items-center">
+              <div className="pawn-grid-wrap">
+                <div className="pawn-grid">
                   {occupants.map(p => (
-                    <div key={p.id} className="flex items-center justify-center">
-                      <PawnIcon id={`pawn-${p.id}`} colorClass={p.color} size="w-[14px] h-[14px] sm:w-[28px] sm:h-[28px]" />
+                    <div key={p.id} className="pawn-cell">
+                      <PawnIcon id={`pawn-${p.id}`} colorClass={p.color} size="w-4 h-4" />
                     </div>
                   ))}
                 </div>
@@ -1135,65 +1203,63 @@ export default function App() {
         })}
 
         {/* --- BOARD CENTER AREA --- */}
-        <div className="relative flex flex-col justify-center items-center p-3 sm:p-6 overflow-hidden" style={{ gridColumn: '2 / 11', gridRow: '2 / 11' }}>
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-            <h1 className="text-[70px] sm:text-[140px] font-black text-slate-800 rotate-[-45deg] tracking-tighter">VYAPARI</h1>
-          </div>
+        <div className="board-center">
+          <div className="board-watermark"></div>
 
-          <div className="z-50 w-full h-full flex flex-col items-center justify-center">
+          <div className="board-center-inner">
             {/* 4 BUTTONS INSIDE THE BOARD */}
-            <div className="absolute top-[8%] sm:top-[6%] left-1/2 -translate-x-1/2 w-[90%] max-w-[500px] grid grid-cols-4 gap-1 sm:gap-3">
-              <button onClick={() => setManageModal(true)} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-red-50 hover:border-red-200">
-                <ShoppingCart className="w-4 h-4 sm:w-6 sm:h-6 text-red-500 group-active:scale-90" />
-                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Manage</span>
+            <div className="board-action-buttons">
+              <button onClick={() => setManageModal(true)} className="board-action-btn manage">
+                <ShoppingCart className="icon" style={{ color: '#ef4444' }} />
+                <span className="board-action-label">Manage</span>
               </button>
               <button onClick={() => {
                 const targets = players.filter(p => p.id !== activePlayer.id && !p.isBot);
                 if (targets.length > 0) setTradeState({ targetPlayerId: targets[0].id, myOffer: { cash: 0, properties: [] }, theirOffer: { cash: 0, properties: [] } });
                 else addLog("No trade partners.");
-              }} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-blue-50 hover:border-blue-200">
-                <Repeat className="w-4 h-4 sm:w-6 sm:h-6 text-blue-500 group-active:scale-90" />
-                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Trade</span>
+              }} className="board-action-btn trade">
+                <Repeat className="icon" style={{ color: '#3b82f6' }} />
+                <span className="board-action-label">Trade</span>
               </button>
-              <button onClick={() => activePlayer.isBot ? addLog('Wait for your turn') : (setLoanDraft({ takeAmount: '0', repayAmount: '0' }), setLoanModal(true))} className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-yellow-50 hover:border-yellow-200">
-                <Save className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-600 group-active:scale-90" />
-                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1">Loan</span>
+              <button onClick={() => activePlayer.isBot ? addLog('Wait for your turn') : (setLoanDraft({ takeAmount: '0', repayAmount: '0' }), setLoanModal(true))} className="board-action-btn loan">
+                <Save className="icon" style={{ color: '#ca8a04' }} />
+                <span className="board-action-label">Loan</span>
               </button>
               <button
                 onClick={() => {
                   if (window.confirm("Quit game and return to menu?")) setAppState('setup');
                 }}
-                className="flex flex-col items-center justify-center bg-white border border-slate-300 rounded-lg sm:rounded-xl p-1.5 sm:p-3 transition-all shadow-sm group hover:bg-slate-800 hover:border-slate-900"
+                className="board-action-btn quit"
               >
-                <LogOut className="w-4 h-4 sm:w-6 sm:h-6 text-slate-500 group-hover:text-white transition-colors" />
-                <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-tight mt-1 group-hover:text-white transition-colors">Quit</span>
+                <LogOut className="icon icon-logout" />
+                <span className="board-action-label">Quit</span>
               </button>
             </div>
 
-            {/* BANKRUPTCY MODAL - INSIDE BOARD (RENDERS BEFORE ACTION MODAL) */}
+            {/* BANKRUPTCY MODAL - INSIDE BOARD */}
             {bankruptcyModal && bankruptcyPlayerId && (
-              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 mt-16 shadow-2xl border-[2px] border-red-500 w-full max-w-[220px] scale-90 sm:scale-100 animate-in zoom-in-95 duration-200">
-                <p className="text-center text-red-500 font-bold uppercase tracking-widest text-[10px] mb-1">Warning</p>
-                <h2 className="text-lg font-black text-center mb-2 text-slate-800">Balance Negative!</h2>
-                <p className="text-center text-xs text-slate-600 mb-2 font-bold">
+              <div className="bankruptcy-modal">
+                <p className="bankruptcy-warning-label">Warning</p>
+                <h2 className="bankruptcy-title">Balance Negative!</h2>
+                <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#475569', marginBottom: '0.5rem', fontWeight: 700 }}>
                   {players.find(p => p.id === bankruptcyPlayerId)?.name || 'Player'}
                 </p>
-                <p className="text-center text-sm font-black text-red-600 mb-3">
+                <p style={{ textAlign: 'center', fontSize: '0.875rem', fontWeight: 900, color: '#dc2626', marginBottom: '0.75rem' }}>
                   ₹{players.find(p => p.id === bankruptcyPlayerId)?.money || 0}
                 </p>
 
-                <div className="space-y-1.5 flex flex-col items-stretch max-w-[150px] mx-auto">
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', maxWidth: '150px', margin: '0 auto', gap: '0.375rem' }}>
                   {getPlayerMortgageableProperties(bankruptcyPlayerId) > 0 ? (
                     <button
                       onClick={() => setManageModal(true)}
-                      className="w-full bg-blue-500 text-white py-2 rounded-lg font-black text-[10px] uppercase shadow-sm active:scale-95 transition-all hover:bg-blue-600"
+                      style={{ width: '100%', backgroundColor: '#3b82f6', color: 'white', padding: '0.5rem', borderRadius: '0.5rem', fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', border: 'none', cursor: 'pointer' }}
                     >
                       ⚙️ MANAGE
                     </button>
                   ) : (
                     <button
                       disabled
-                      className="w-full bg-slate-400 text-white py-2 rounded-lg font-black text-[10px] uppercase shadow-sm cursor-not-allowed opacity-60"
+                      style={{ width: '100%', backgroundColor: '#94a3b8', color: 'white', padding: '0.5rem', borderRadius: '0.5rem', fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', border: 'none', cursor: 'not-allowed', opacity: 0.6 }}
                       title="No properties to mortgage or sell"
                     >
                       ⚙️ MANAGE
@@ -1201,100 +1267,103 @@ export default function App() {
                   )}
                   <button
                     onClick={declareBankruptcy}
-                    className="w-full bg-red-500 text-white py-2 rounded-lg font-black text-[10px] uppercase shadow-sm active:scale-95 transition-all hover:bg-red-600"
+                    style={{ width: '100%', backgroundColor: '#ef4444', color: 'white', padding: '0.5rem', borderRadius: '0.5rem', fontWeight: 900, fontSize: '10px', textTransform: 'uppercase', border: 'none', cursor: 'pointer' }}
                   >
                     💔 BANKRUPT
                   </button>
                 </div>
                 {getPlayerMortgageableProperties(bankruptcyPlayerId) === 0 && (
-                  <p className="text-center text-[10px] text-red-500 font-bold mt-2 uppercase">No properties available to manage</p>
+                  <p style={{ textAlign: 'center', fontSize: '10px', color: '#ef4444', fontWeight: 700, marginTop: '0.5rem', textTransform: 'uppercase' }}>No properties available to manage</p>
                 )}
               </div>
             )}
 
             {/* ACTION MODAL - INSIDE BOARD */}
             {(phase.startsWith('ACTION') || (phase === 'ROLL' && activePlayer.inJail && !activePlayer.isBot)) && activePlayer.position !== undefined && (
-              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-2 shadow-2xl border-[2px] border-blue-500 w-full max-w-[220px] scale-90 sm:scale-100 animate-in zoom-in-95 duration-200">
-                <p className="text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">Auction of</p>
+              <div className="action-modal">
+                <p className="action-modal-header">Auction of</p>
 
                 {phase === 'ROLL' && activePlayer.inJail && (
                   <>
-                    <h2 className="text-lg font-black text-center mb-2 text-slate-800">In Jail</h2>
-                    <p className="text-[10px] text-center text-slate-500 mb-3 font-bold uppercase">{3 - (activePlayer.jailTurns || 0)} attempts left</p>
-                    <div className="space-y-1.5 flex flex-col items-stretch max-w-[150px] mx-auto">
-                      <button onClick={rollDice} disabled={isRolling} className="w-full bg-blue-500 text-white py-2 rounded-lg font-black text-[10px] shadow-sm active:scale-95 transition-all">🎲 Roll Doubles</button>
-                      <button onClick={payJailFine} disabled={activePlayer.money < 500} className={`w-full text-white py-2 rounded-lg font-black text-[10px] shadow-sm transition-all ${activePlayer.money >= 500 ? 'bg-red-500 active:scale-95 cursor-pointer' : 'bg-slate-400 opacity-50 cursor-not-allowed'}`}>💸 Pay ₹500</button>
-                      <button onClick={useJailCard} disabled={!activePlayer.getOutOfJailFree} className={`w-full text-white py-2 rounded-lg font-black text-[10px] shadow-sm transition-all ${activePlayer.getOutOfJailFree > 0 ? 'bg-orange-500 active:scale-95 cursor-pointer' : 'bg-slate-400 opacity-50 cursor-not-allowed'}`}>🎫 Use Card</button>
+                    <h2 className="jail-title">In Jail</h2>
+                    <p className="jail-subtitle">{3 - (activePlayer.jailTurns || 0)} attempts left</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', maxWidth: '150px', margin: '0 auto', gap: '0.375rem' }}>
+                      <button onClick={rollDice} disabled={isRolling} style={{ width: '100%', backgroundColor: '#3b82f6', color: 'white', padding: '0.5rem', borderRadius: '0.5rem', fontWeight: 900, fontSize: '10px', border: 'none', cursor: 'pointer' }}>🎲 Roll Doubles</button>
+                      <button onClick={payJailFine} disabled={activePlayer.money < 500} style={{ width: '100%', backgroundColor: activePlayer.money >= 500 ? '#ef4444' : '#94a3b8', color: 'white', padding: '0.5rem', borderRadius: '0.5rem', fontWeight: 900, fontSize: '10px', border: 'none', cursor: activePlayer.money >= 500 ? 'pointer' : 'not-allowed', opacity: activePlayer.money < 500 ? 0.5 : 1 }}>💸 Pay ₹500</button>
+                      <button onClick={useJailCard} disabled={!activePlayer.getOutOfJailFree} style={{ width: '100%', backgroundColor: activePlayer.getOutOfJailFree > 0 ? '#f97316' : '#94a3b8', color: 'white', padding: '0.5rem', borderRadius: '0.5rem', fontWeight: 900, fontSize: '10px', border: 'none', cursor: activePlayer.getOutOfJailFree > 0 ? 'pointer' : 'not-allowed', opacity: !activePlayer.getOutOfJailFree ? 0.5 : 1 }}>🎫 Use Card</button>
                     </div>
                   </>
                 )}
 
                 {phase === 'ACTION_BUY' && (
                   <>
-                    <h2 className="text-lg font-black text-center mb-2 truncate">{BOARD_DATA[activePlayer.position].name}</h2>
-                    <div className="bg-blue-50 p-2 rounded-2xl text-center border-2 border-blue-100 mb-3">
-                      <span className="text-slate-500 text-xs uppercase font-bold">Asking Price</span>
-                      <p className="text-xl font-black text-blue-600">₹{BOARD_DATA[activePlayer.position].price}</p>
+                    <h2 style={{ fontSize: '1.125rem', fontWeight: 900, textAlign: 'center', marginBottom: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{BOARD_DATA[activePlayer.position].name}</h2>
+                    <div style={{ backgroundColor: '#eff6ff', padding: '0.5rem', borderRadius: '1rem', textAlign: 'center', border: '2px solid #dbeafe', marginBottom: '0.75rem' }}>
+                      <span style={{ color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Asking Price</span>
+                      <p style={{ fontSize: '1.25rem', fontWeight: 900, color: '#2563eb' }}>₹{BOARD_DATA[activePlayer.position].price}</p>
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={buyProperty} disabled={activePlayer.money < BOARD_DATA[activePlayer.position].price} className={`flex-1 text-white py-2 rounded-xl font-black text-[10px] flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-all ${activePlayer.money >= BOARD_DATA[activePlayer.position].price ? 'bg-green-500 shadow-green-200 hover:bg-green-600' : 'bg-slate-400 shadow-slate-200 opacity-50 cursor-not-allowed'}`}><Check size={14} /> BUY</button>
-                      <button onClick={startAuction} className="flex-1 bg-purple-500 text-white py-2 rounded-xl font-black text-[10px] flex items-center justify-center gap-1 shadow-lg shadow-purple-200 active:scale-95">AUCTION</button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={buyProperty} disabled={activePlayer.money < BOARD_DATA[activePlayer.position].price} style={{ flex: 1, color: 'white', padding: '0.5rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', border: 'none', cursor: activePlayer.money >= BOARD_DATA[activePlayer.position].price ? 'pointer' : 'not-allowed', backgroundColor: activePlayer.money >= BOARD_DATA[activePlayer.position].price ? '#22c55e' : '#94a3b8', opacity: activePlayer.money < BOARD_DATA[activePlayer.position].price ? 0.5 : 1 }}><Check size={14} /> BUY</button>
+                      <button onClick={startAuction} style={{ flex: 1, backgroundColor: '#a855f7', color: 'white', padding: '0.5rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', border: 'none', cursor: 'pointer' }}>AUCTION</button>
                     </div>
                   </>
                 )}
 
                 {phase === 'ACTION_AUCTION' && auctionState && (
-                  <div className="w-full text-left">
-                    <h2 className="text-[14px] font-black mb-1 uppercase text-center text-purple-900 border-b-2 border-purple-200 pb-1 truncate">{BOARD_DATA[auctionState.propertyId].name}</h2>
-                    <div className="bg-purple-50 p-1 rounded-lg text-center mb-1">
-                      <span className="text-[9px] uppercase font-bold text-slate-500">Highest Bid</span>
-                      <div className="text-xl font-black text-purple-600">₹{auctionState.highestBid}</div>
-                      <div className="text-[10px] font-bold text-slate-600 truncate">{auctionState.highestBidderId ? players.find(p => p.id === auctionState.highestBidderId)?.name : 'None'}</div>
+                  <div style={{ width: '100%', textAlign: 'left' }}>
+                    <h2 style={{ fontSize: '14px', fontWeight: 900, marginBottom: '0.25rem', textTransform: 'uppercase', textAlign: 'center', color: '#581c87', borderBottom: '2px solid #e9d5ff', paddingBottom: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{BOARD_DATA[auctionState.propertyId].name}</h2>
+                    <div className="auction-highest-box">
+                      <span style={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 700, color: '#64748b' }}>Highest Bid</span>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#9333ea' }}>₹{auctionState.highestBid}</div>
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{auctionState.highestBidderId ? players.find(p => p.id === auctionState.highestBidderId)?.name : 'None'}</div>
                     </div>
 
-                    <div className="bg-white border-2 border-slate-100 p-1 rounded-lg mb-1 text-center shadow-inner">
-                      <span className="text-[9px] uppercase font-bold text-slate-400">Current Bidder</span>
-                      <div className="font-black text-sm text-slate-800 truncate">{players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.name}</div>
-                      <div className="text-[10px] font-bold text-green-600 mt-0.5">Wallet: ₹{players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.money}</div>
+                    <div className="auction-current-box">
+                      <span style={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 700, color: '#94a3b8' }}>Current Bidder</span>
+                      <div style={{ fontWeight: 900, fontSize: '0.875rem', color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.name}</div>
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: '#16a34a', marginTop: '0.125rem' }}>Wallet: ₹{players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.money}</div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       {(!players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.isBot) ? (
                         <>
-                          <div className="flex flex-col gap-2">
-                            <div className="flex bg-slate-50 border-2 border-slate-200 rounded-lg overflow-hidden relative">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">₹</span>
-                              <input type="number" step="10" min={Math.max(10, auctionState.highestBid + 10)} max={players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.money || 0} value={auctionState.targetBid} onChange={e => setAuctionState({ ...auctionState, targetBid: parseInt(e.target.value) || 0 })} className="w-full bg-transparent p-1.5 pl-6 font-black text-slate-800 text-left text-sm outline-none" />
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <div className="auction-bid-input-wrap">
+                              <span className="auction-currency-label">₹</span>
+                              <input type="number" step="10" min={Math.max(10, auctionState.highestBid + 10)} max={players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.money || 0} value={auctionState.targetBid} onChange={e => setAuctionState({ ...auctionState, targetBid: parseInt(e.target.value) || 0 })} className="auction-input" />
                             </div>
-                            <input type="range" step="10" min={Math.max(10, auctionState.highestBid + 10)} max={Math.max(Math.max(10, auctionState.highestBid + 10), players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.money || 0)} value={Math.max(Math.max(10, auctionState.highestBid + 10), auctionState.targetBid)} onChange={e => setAuctionState({ ...auctionState, targetBid: parseInt(e.target.value) || 0 })} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                            <input type="range" step="10" min={Math.max(10, auctionState.highestBid + 10)} max={Math.max(Math.max(10, auctionState.highestBid + 10), players.find(p => p.id === auctionState.bidders[auctionState.currentBidderIndex])?.money || 0)} value={Math.max(Math.max(10, auctionState.highestBid + 10), auctionState.targetBid)} onChange={e => setAuctionState({ ...auctionState, targetBid: parseInt(e.target.value) || 0 })} className="auction-range" />
                           </div>
-                          <div className="flex gap-1.5 mt-2">
-                            <button onClick={() => placeBid()} className="flex-1 bg-green-500 text-white font-black text-[10px] py-2 sm:py-3 rounded-lg shadow-md uppercase active:scale-95 transition-all">Bid</button>
-                            <button onClick={foldAuction} className="flex-1 bg-red-500 text-white font-black text-[10px] py-2 sm:py-3 rounded-lg shadow-md uppercase active:scale-95 transition-all">Fold</button>
+                          <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.5rem' }}>
+                            <button onClick={() => placeBid()} style={{ flex: 1, backgroundColor: '#22c55e', color: 'white', fontWeight: 900, fontSize: '10px', padding: '0.5rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', textTransform: 'uppercase' }}>Bid</button>
+                            <button onClick={foldAuction} style={{ flex: 1, backgroundColor: '#ef4444', color: 'white', fontWeight: 900, fontSize: '10px', padding: '0.5rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', textTransform: 'uppercase' }}>Fold</button>
                           </div>
                         </>
                       ) : (
-                        <div className="text-center font-bold text-slate-500 text-[10px] italic py-2 animate-pulse">Bot is thinking...</div>
+                        <div className="bot-thinking">Bot is thinking...</div>
                       )}
                     </div>
                   </div>
                 )}
 
                 {phase === 'ACTION_CARD' && activeCard && (
-                  <div className="text-center">
-                    <div className="mb-5">{activeCard.type === 'CHANCE' ? <HelpCircle size={48} className="mx-auto text-purple-500 mb-2" /> : <Briefcase size={48} className="mx-auto text-blue-500 mb-2" />}<h2 className="font-black text-2xl uppercase">{activeCard.type}</h2></div>
-                    <p className="font-bold text-slate-700 mb-8 bg-slate-100 p-5 rounded-2xl text-sm italic leading-relaxed border border-slate-200 shadow-inner">"{activeCard.text}"</p>
-                    <button onClick={applyCard} className="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-lg shadow-lg">CONTINUE</button>
+                  <div className="card-modal-inner">
+                    <div className="card-icon-wrap">
+                      {activeCard.type === 'CHANCE' ? <HelpCircle size={48} style={{ margin: '0 auto', color: '#a855f7', display: 'block', marginBottom: '0.5rem' }} /> : <Briefcase size={48} style={{ margin: '0 auto', color: '#3b82f6', display: 'block', marginBottom: '0.5rem' }} />}
+                      <h2 style={{ fontWeight: 900, fontSize: '1.5rem', textTransform: 'uppercase' }}>{activeCard.type}</h2>
+                    </div>
+                    <p className="card-text">"{activeCard.text}"</p>
+                    <button onClick={applyCard} style={{ width: '100%', backgroundColor: '#2563eb', color: 'white', padding: '1rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '1.125rem', border: 'none', cursor: 'pointer', boxShadow: '0 10px 15px -3px rgb(0 0 0/0.1)' }}>CONTINUE</button>
                   </div>
                 )}
               </div>
             )}
 
             {phase === 'MANAGE' && !activePlayer.isBot && (
-              <div className="bg-slate-800/95 backdrop-blur-md rounded-3xl p-6 mt-16 shadow-2xl border-[3px] border-slate-600 w-full max-w-[220px] scale-90 sm:scale-100 text-white text-center animate-in fade-in">
-                <Building size={40} className="mx-auto text-yellow-400 mb-2" />
-                <h3 className="font-black text-xl mb-1">Property Control</h3>
-                <button onClick={endTurn} className="w-full bg-yellow-500 text-slate-900 py-2 rounded-xl font-black text-base uppercase active:scale-95 transition-all">End Turn</button>
+              <div className="manage-phase-modal">
+                <Building size={40} style={{ margin: '0 auto', color: '#facc15', marginBottom: '0.5rem' }} />
+                <h3 style={{ fontWeight: 900, fontSize: '1.25rem', marginBottom: '0.25rem' }}>Property Control</h3>
+                <button onClick={endTurn} style={{ width: '100%', backgroundColor: '#eab308', color: '#1e293b', padding: '0.5rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase', border: 'none', cursor: 'pointer' }}>End Turn</button>
               </div>
             )}
           </div>
@@ -1302,12 +1371,12 @@ export default function App() {
       </div>
 
       {/* BOTTOM PLAYERS */}
-      <div className="w-full max-w-[850px] flex justify-between items-start mt-6 px-4">
-        <div className="flex flex-col items-center gap-4">
+      <div className="players-row bottom">
+        <div className="player-side">
           {players[0] && <PlayerCard player={players[0]} isActive={turn === 0} logs={floatingLogs} onClick={() => { setSelectedPlayerForDescriptionId(players[0].id); setPlayerDescriptionModal(true); }} />}
           <DiceArea isActive={turn === 0} dice={dice} isRolling={isRolling} onRoll={rollDice} />
         </div>
-        <div className="flex flex-col items-center gap-4">
+        <div className="player-side">
           {players[3] && <PlayerCard player={players[3]} isActive={turn === 3} logs={floatingLogs} onClick={() => { setSelectedPlayerForDescriptionId(players[3].id); setPlayerDescriptionModal(true); }} />}
           <DiceArea isActive={turn === 3} dice={dice} isRolling={isRolling} onRoll={rollDice} />
         </div>
@@ -1315,13 +1384,13 @@ export default function App() {
 
       {/* SELECTOR MODAL FOR TRADE */}
       {selectorTarget && (
-        <div className="fixed inset-0 z-[140] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-[400px] shadow-2xl p-6 animate-in zoom-in-95">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="font-black uppercase text-slate-800 tracking-wider">Select Property</h3>
-              <X className="cursor-pointer text-slate-400" onClick={() => setSelectorTarget(null)} />
+        <div className="overlay-backdrop" style={{ zIndex: 140 }}>
+          <div className="modal-card" style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 900, textTransform: 'uppercase', color: '#1e293b', letterSpacing: '0.05em' }}>Select Property</h3>
+              <X style={{ cursor: 'pointer', color: '#94a3b8' }} onClick={() => setSelectorTarget(null)} />
             </div>
-            <div className="max-h-[400px] overflow-y-auto space-y-2 pr-1">
+            <div style={{ maxHeight: '400px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '0.25rem' }}>
               {Object.keys(properties)
                 .filter(k => properties[k].ownerId === (selectorTarget === 'my' ? activePlayer.id : tradeState.targetPlayerId))
                 .map(pid => {
@@ -1335,84 +1404,99 @@ export default function App() {
                         const newProps = isSelected ? currentProps.filter(id => id !== parseInt(pid)) : [...currentProps, parseInt(pid)];
                         setTradeState({ ...tradeState, [targetPath]: { ...tradeState[targetPath], properties: newProps } });
                       }}
-                      className={`w-full text-left p-4 rounded-2xl text-sm font-black transition-all border-[3px] flex items-center justify-between ${isSelected ? 'bg-blue-600 text-white border-blue-400 shadow-lg' : 'bg-slate-50 text-slate-700 border-slate-100 hover:bg-slate-100'}`}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '1rem',
+                        borderRadius: '1rem',
+                        fontSize: '0.875rem',
+                        fontWeight: 900,
+                        border: `3px solid ${isSelected ? '#60a5fa' : '#f1f5f9'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        backgroundColor: isSelected ? '#2563eb' : '#f8fafc',
+                        color: isSelected ? 'white' : '#334155',
+                        cursor: 'pointer',
+                        boxShadow: isSelected ? '0 10px 15px -3px rgb(0 0 0/0.1)' : 'none',
+                      }}
                     >
                       {BOARD_DATA[pid].name}
                       {isSelected && <Check size={18} />}
                     </button>
-                  )
+                  );
                 })
               }
               {Object.keys(properties).filter(k => properties[k].ownerId === (selectorTarget === 'my' ? activePlayer.id : tradeState.targetPlayerId)).length === 0 && (
-                <div className="text-center text-slate-400 font-bold py-8">No properties to trade.</div>
+                <div className="empty-state">No properties to trade.</div>
               )}
             </div>
-            <button onClick={() => setSelectorTarget(null)} className="w-full bg-slate-900 text-white py-4 rounded-xl font-black mt-8 uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all">Done Selection</button>
+            <button onClick={() => setSelectorTarget(null)} style={{ width: '100%', backgroundColor: '#0f172a', color: 'white', padding: '1rem', borderRadius: '0.75rem', fontWeight: 900, marginTop: '2rem', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.875rem', border: 'none', cursor: 'pointer', boxShadow: '0 20px 25px -5px rgb(0 0 0/0.1)' }}>Done Selection</button>
           </div>
         </div>
       )}
 
       {/* TRADE MODAL */}
       {tradeState && !selectorTarget && (
-        <div className="fixed inset-0 z-[130] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-[600px] shadow-2xl flex flex-col p-6 animate-in zoom-in-95">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black uppercase text-blue-900 border-b-4 border-blue-500 pb-2 tracking-tighter">Trade Offer</h2>
-              <button onClick={() => setTradeState(null)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500"><X size={24} /></button>
+        <div className="overlay-backdrop" style={{ zIndex: 130 }}>
+          <div className="modal-card" style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title blue">Trade Offer</h2>
+              <button onClick={() => setTradeState(null)} className="modal-close-btn"><X size={24} /></button>
             </div>
 
-            <div className="mb-6">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Deal With:</label>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '0.5rem' }}>Deal With:</label>
               <select
                 value={tradeState.targetPlayerId || ''}
                 onChange={e => setTradeState({ ...tradeState, targetPlayerId: parseInt(e.target.value), theirOffer: { cash: 0, properties: [] } })}
-                className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-black text-slate-800 outline-none focus:border-blue-400 transition-all"
+                className="form-select"
               >
                 {players.filter(p => p.id !== activePlayer.id).map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 flex-1 overflow-y-auto mb-8 pr-1">
-              <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
-                <h3 className="font-black text-blue-800 text-center uppercase mb-4 text-xs tracking-wider">Your Offer</h3>
-                <div className="mb-4">
-                  <label className="text-[10px] uppercase font-bold text-blue-600 block mb-1">Cash (₹)</label>
-                  <input type="number" step="100" min="0" max={activePlayer.money} value={tradeState.myOffer.cash} onChange={e => setTradeState({ ...tradeState, myOffer: { ...tradeState.myOffer, cash: parseInt(e.target.value) || 0 } })} className="w-full bg-white rounded-xl p-2.5 font-black text-blue-900 border border-blue-200 outline-none text-sm" />
+            <div className="trade-cols">
+              <div className="trade-side my">
+                <h3 style={{ fontWeight: 900, color: '#1e40af', textAlign: 'center', textTransform: 'uppercase', marginBottom: '1rem', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Your Offer</h3>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: '#2563eb', display: 'block', marginBottom: '0.25rem' }}>Cash (₹)</label>
+                  <input type="number" step="100" min="0" max={activePlayer.money} value={tradeState.myOffer.cash} onChange={e => setTradeState({ ...tradeState, myOffer: { ...tradeState.myOffer, cash: parseInt(e.target.value) || 0 } })} className="form-number-input blue" />
                 </div>
-                <button onClick={() => setSelectorTarget('my')} className="w-full bg-white border-2 border-blue-200 text-blue-600 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm hover:bg-blue-50 transition-all flex items-center justify-center gap-2 mb-3">
+                <button onClick={() => setSelectorTarget('my')} style={{ width: '100%', backgroundColor: 'white', border: '2px solid #bfdbfe', color: '#2563eb', padding: '0.75rem', borderRadius: '0.75rem', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   <ShoppingCart size={14} /> Select Property
                 </button>
-                <div className="flex flex-wrap gap-1">
+                <div className="trade-prop-chips">
                   {tradeState.myOffer.properties.map(pid => (
-                    <div key={pid} className="bg-blue-600 text-white px-2 py-1 rounded-lg text-[9px] font-black flex items-center gap-1 shadow-sm">
+                    <div key={pid} className="trade-prop-chip my">
                       {BOARD_DATA[pid].name}
-                      <X size={10} className="cursor-pointer hover:scale-125" onClick={() => { const props = tradeState.myOffer.properties.filter(id => id !== pid); setTradeState({ ...tradeState, myOffer: { ...tradeState.myOffer, properties: props } }); }} />
+                      <X size={10} style={{ cursor: 'pointer' }} onClick={() => { const props = tradeState.myOffer.properties.filter(id => id !== pid); setTradeState({ ...tradeState, myOffer: { ...tradeState.myOffer, properties: props } }); }} />
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="bg-orange-50 rounded-2xl p-4 border border-orange-100">
-                <h3 className="font-black text-orange-800 text-center uppercase mb-4 text-xs tracking-wider">You Receive</h3>
-                <div className="mb-4">
-                  <label className="text-[10px] uppercase font-bold text-orange-600 block mb-1">Cash (₹)</label>
-                  <input type="number" step="100" min="0" value={tradeState.theirOffer.cash} onChange={e => setTradeState({ ...tradeState, theirOffer: { ...tradeState.theirOffer, cash: parseInt(e.target.value) || 0 } })} className="w-full bg-white rounded-xl p-2.5 font-black text-orange-900 border border-orange-200 outline-none text-sm" />
+              <div className="trade-side their">
+                <h3 style={{ fontWeight: 900, color: '#9a3412', textAlign: 'center', textTransform: 'uppercase', marginBottom: '1rem', fontSize: '0.75rem', letterSpacing: '0.05em' }}>You Receive</h3>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: '#ea580c', display: 'block', marginBottom: '0.25rem' }}>Cash (₹)</label>
+                  <input type="number" step="100" min="0" value={tradeState.theirOffer.cash} onChange={e => setTradeState({ ...tradeState, theirOffer: { ...tradeState.theirOffer, cash: parseInt(e.target.value) || 0 } })} className="form-number-input orange" />
                 </div>
-                <button onClick={() => setSelectorTarget('their')} className="w-full bg-white border-2 border-orange-200 text-orange-600 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm hover:bg-orange-50 transition-all flex items-center justify-center gap-2 mb-3">
+                <button onClick={() => setSelectorTarget('their')} style={{ width: '100%', backgroundColor: 'white', border: '2px solid #fed7aa', color: '#ea580c', padding: '0.75rem', borderRadius: '0.75rem', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   <ShoppingCart size={14} /> Select Property
                 </button>
-                <div className="flex flex-wrap gap-1">
+                <div className="trade-prop-chips">
                   {tradeState.theirOffer.properties.map(pid => (
-                    <div key={pid} className="bg-orange-600 text-white px-2 py-1 rounded-lg text-[9px] font-black flex items-center gap-1 shadow-sm">
+                    <div key={pid} className="trade-prop-chip their">
                       {BOARD_DATA[pid].name}
-                      <X size={10} className="cursor-pointer hover:scale-125" onClick={() => { const props = tradeState.theirOffer.properties.filter(id => id !== pid); setTradeState({ ...tradeState, theirOffer: { ...tradeState.theirOffer, properties: props } }); }} />
+                      <X size={10} style={{ cursor: 'pointer' }} onClick={() => { const props = tradeState.theirOffer.properties.filter(id => id !== pid); setTradeState({ ...tradeState, theirOffer: { ...tradeState.theirOffer, properties: props } }); }} />
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            <button onClick={executeTrade} className="w-full bg-green-500 py-5 rounded-2xl text-white font-black text-xl shadow-xl hover:bg-green-600 active:scale-95 transition-all flex items-center justify-center gap-3">
+            <button onClick={executeTrade} style={{ width: '100%', backgroundColor: '#22c55e', padding: '1.25rem', borderRadius: '1rem', color: 'white', fontWeight: 900, fontSize: '1.25rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', boxShadow: '0 20px 25px -5px rgb(0 0 0/0.1)' }}>
               <Check size={28} strokeWidth={3} /> CONFIRM TRADE
             </button>
           </div>
@@ -1421,41 +1505,44 @@ export default function App() {
 
       {/* PROPERTY DASHBOARD MODAL */}
       {manageModal && (
-        <div className="fixed inset-0 z-[130] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-[600px] max-h-[80vh] shadow-2xl flex flex-col p-6 animate-in zoom-in-95">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black uppercase text-blue-900 border-b-4 border-blue-500 pb-2">Manage Properties</h2>
+        <div className="overlay-backdrop" style={{ zIndex: 130 }}>
+          <div className="modal-card" style={{ maxWidth: '600px', maxHeight: '80vh' }}>
+            <div className="modal-header">
+              <h2 className="modal-title blue">Manage Properties</h2>
               <button onClick={() => {
                 setManageModal(false);
                 if (activePlayer?.money < 0) {
                   setBankruptcyModal(true);
                 }
-              }} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500"><X size={24} /></button>
+              }} className="modal-close-btn"><X size={24} /></button>
             </div>
-            <div className="overflow-y-auto pr-2 space-y-3 flex-1">
+            <div style={{ overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
               {Object.entries(properties)
                 .filter(([id, p]) => p.ownerId === activePlayer.id)
                 .map(([id, p]) => {
                   const tile = BOARD_DATA[id];
-                  const colorClass = getGroupColor(tile.group) || 'bg-slate-400';
+                  const groupColor = getGroupColor(tile.group) || '#94a3b8';
                   return (
-                    <div key={id} className={`flex flex-col sm:flex-row items-center gap-4 bg-white border-[2px] ${p.mortgaged ? 'border-red-200 opacity-80' : 'border-slate-100'} p-3 rounded-xl shadow-sm transition-all hover:shadow-md`}>
-                      <div className={`w-full sm:w-20 sm:h-20 ${colorClass} rounded-lg flex items-center justify-center p-2 text-white font-black text-center text-xs leading-tight shadow-inner`}>
+                    <div key={id} className={`property-row${p.mortgaged ? ' mortgaged' : ''}`}>
+                      <div className="property-color-swatch" style={{ backgroundColor: groupColor }}>
                         {tile.name}
                       </div>
-                      <div className="flex-1 flex flex-col gap-2 w-full">
-                        <div className="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-100">
-                          <span className="text-xs font-bold text-slate-500 uppercase">Status</span>
-                          <span className={`text-sm font-black ${p.mortgaged ? 'text-red-500' : (p.hotel ? 'text-red-600' : 'text-slate-800')}`}>{p.mortgaged ? 'MORTGAGED' : (p.hotel ? 'HOTEL' : `${p.houses || 0} HOUSES`)}</span>
+                      <div className="property-actions">
+                        <div className="property-detail-row">
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Status</span>
+                          <span style={{ fontSize: '0.875rem', fontWeight: 900, color: p.mortgaged ? '#ef4444' : (p.hotel ? '#dc2626' : '#1e293b') }}>
+                            {p.mortgaged ? 'MORTGAGED' : (p.hotel ? 'HOTEL' : `${p.houses || 0} HOUSES`)}
+                          </span>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="prop-btn-row">
                           <button
                             onClick={() => {
                               if (p.mortgaged || p.hotel || tile.type !== 'property') return;
                               setPendingManage(prev => (prev.propId === id && prev.action === 'build' ? { propId: null, action: null } : { propId: id, action: 'build' }));
                             }}
                             disabled={p.mortgaged || p.hotel || tile.type !== 'property'}
-                            className={`flex-1 ${pendingManage.propId === id && pendingManage.action === 'build' ? 'bg-yellow-600' : 'bg-green-500'} text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex justify-center items-center gap-1`}>
+                            className={`prop-btn build${pendingManage.propId === id && pendingManage.action === 'build' ? ' selected' : ''}`}
+                          >
                             <Home size={12} /> Build
                           </button>
 
@@ -1465,21 +1552,23 @@ export default function App() {
                               setPendingManage(prev => (prev.propId === id && prev.action === 'sell' ? { propId: null, action: null } : { propId: id, action: 'sell' }));
                             }}
                             disabled={p.mortgaged}
-                            className={`flex-1 ${pendingManage.propId === id && pendingManage.action === 'sell' ? 'bg-yellow-600' : 'bg-red-500'} text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex justify-center items-center gap-1`}>
-                            <ShoppingCart size={12} /> Sell <span className="hidden sm:inline">{(p.houses > 0 || p.hotel) ? 'House' : 'Prop'}</span>
+                            className={`prop-btn sell${pendingManage.propId === id && pendingManage.action === 'sell' ? ' selected' : ''}`}
+                          >
+                            <ShoppingCart size={12} /> Sell <span style={{ display: 'none' }}>{(p.houses > 0 || p.hotel) ? 'House' : 'Prop'}</span>
                           </button>
 
                           <button
                             onClick={() => {
                               setPendingManage(prev => (prev.propId === id && prev.action === 'mortgage' ? { propId: null, action: null } : { propId: id, action: 'mortgage' }));
                             }}
-                            className={`flex-1 ${pendingManage.propId === id && pendingManage.action === 'mortgage' ? 'bg-yellow-600' : (p.mortgaged ? 'bg-blue-500' : 'bg-orange-500')} text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 transition-all flex justify-center items-center gap-1`}>
+                            className={`prop-btn ${p.mortgaged ? 'redeem' : 'mortgage'}${pendingManage.propId === id && pendingManage.action === 'mortgage' ? ' selected' : ''}`}
+                          >
                             <RefreshCw size={12} /> {p.mortgaged ? 'Redeem' : 'Mortgage'}
                           </button>
                         </div>
                         <button
                           onClick={() => confirmManage(id)}
-                          className="flex-1 bg-purple-500 text-white text-[10px] font-black py-2 px-1 rounded-lg uppercase tracking-tight shadow-sm active:scale-95 transition-all flex justify-center items-center gap-1"
+                          className="prop-btn confirm-action"
                         >
                           {(() => {
                             if (pendingManage.propId !== id || !pendingManage.action) return 'Confirm';
@@ -1507,7 +1596,7 @@ export default function App() {
                   );
                 })}
               {Object.entries(properties).filter(([id, p]) => p.ownerId === activePlayer.id).length === 0 && (
-                <div className="text-center text-slate-400 font-bold p-8 border-2 border-dashed border-slate-200 rounded-2xl">
+                <div className="empty-state">
                   You don't own any properties yet.
                 </div>
               )}
@@ -1518,64 +1607,64 @@ export default function App() {
 
       {/* PLAYER DESCRIPTION MODAL */}
       {playerDescriptionModal && selectedPlayerForDescription && (
-        <div className="fixed inset-0 z-[131] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-[500px] shadow-2xl flex flex-col p-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3">
+        <div className="overlay-backdrop" style={{ zIndex: 131 }}>
+          <div className="modal-card" style={{ maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <PawnIcon colorClass={selectedPlayerForDescription.color} size="w-8 h-8" />
-                <h2 className="text-2xl font-black uppercase text-slate-900">{selectedPlayerForDescription.name}</h2>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 900, textTransform: 'uppercase', color: '#0f172a' }}>{selectedPlayerForDescription.name}</h2>
               </div>
-              <button onClick={() => { setPlayerDescriptionModal(false); setSelectedPlayerForDescriptionId(null); }} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500"><X size={24} /></button>
+              <button onClick={() => { setPlayerDescriptionModal(false); setSelectedPlayerForDescriptionId(null); }} className="modal-close-btn"><X size={24} /></button>
             </div>
 
             {/* BALANCE */}
-            <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-xl mb-4 border-2 border-green-200">
-              <p className="text-xs font-bold text-slate-600 uppercase mb-1">Current Balance</p>
-              <p className="text-3xl font-black text-green-600">₹{selectedPlayerForDescription.money}</p>
+            <div style={{ backgroundImage: 'linear-gradient(to right, #f0fdf4, #dcfce7)', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1rem', border: '2px solid #bbf7d0' }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Current Balance</p>
+              <p style={{ fontSize: '1.875rem', fontWeight: 900, color: '#16a34a' }}>₹{selectedPlayerForDescription.money}</p>
             </div>
 
             {/* LOAN INFO */}
-            <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-xl mb-4 border-2 border-red-200">
-              <p className="text-xs font-bold text-slate-600 uppercase mb-2">Loan Details</p>
-              <div className="space-y-1 text-sm font-bold text-slate-700">
-                <div className="flex justify-between items-center">
+            <div style={{ backgroundImage: 'linear-gradient(to right, #fef2f2, #fee2e2)', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1rem', border: '2px solid #fecaca' }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Loan Details</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.875rem', fontWeight: 700, color: '#334155' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>Amount to Pay</span>
-                  <span className="text-lg font-black text-red-600">Rs. {selectedPlayerOutstandingLoan}</span>
+                  <span style={{ fontSize: '1.125rem', fontWeight: 900, color: '#dc2626' }}>Rs. {selectedPlayerOutstandingLoan}</span>
                 </div>
-                <div className="flex justify-between items-center">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>Interest per Turn</span>
                   <span>{Math.round(LOAN_RATE_PER_TURN * 100)}%</span>
                 </div>
-                <div className="flex justify-between items-center">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>Next Turn Interest</span>
                   <span>Rs. {selectedPlayerLoanInterestNextTurn}</span>
                 </div>
-                <div className="flex justify-between items-center border-t border-red-200 pt-2">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #fecaca', paddingTop: '0.5rem' }}>
                   <span>If Not Paid (Next Turn)</span>
-                  <span className="font-black">Rs. {selectedPlayerNextTurnLoanTotal}</span>
+                  <span style={{ fontWeight: 900 }}>Rs. {selectedPlayerNextTurnLoanTotal}</span>
                 </div>
               </div>
             </div>
 
             {/* PROPERTIES */}
-            <div className="mb-4">
-              <h3 className="text-lg font-black text-slate-800 mb-3 uppercase">Properties</h3>
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            <div style={{ marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 900, color: '#1e293b', marginBottom: '0.75rem', textTransform: 'uppercase' }}>Properties</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto' }}>
                 {selectedPlayerOwnedProperties.length > 0 ? (
                   selectedPlayerOwnedProperties.map(([id, p]) => {
                     const tile = BOARD_DATA[id];
-                    const colorClass = getGroupColor(tile.group) || 'bg-slate-400';
+                    const groupColor = getGroupColor(tile.group) || '#94a3b8';
                     return (
-                      <div key={id} className={`${colorClass} p-3 rounded-lg text-white shadow-md border-2 border-opacity-50 border-white`}>
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-sm">{tile.name}</span>
-                          <div className="flex items-center gap-2">
+                      <div key={id} style={{ backgroundColor: groupColor, padding: '0.75rem', borderRadius: '0.5rem', color: 'white', boxShadow: '0 4px 6px -1px rgb(0 0 0/0.1)', border: '2px solid rgba(255,255,255,0.5)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{tile.name}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             {p.mortgaged ? (
-                              <span className="bg-red-600 px-2 py-1 rounded text-xs font-black">MORTGAGED</span>
+                              <span style={{ backgroundColor: '#dc2626', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 900 }}>MORTGAGED</span>
                             ) : (
                               <>
-                                {p.hotel && <span className="bg-yellow-600 px-2 py-1 rounded text-xs font-black">HOTEL</span>}
-                                {!p.hotel && <span className="bg-green-600 px-2 py-1 rounded text-xs font-black">Houses: {p.houses || 0}</span>}
+                                {p.hotel && <span style={{ backgroundColor: '#ca8a04', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 900 }}>HOTEL</span>}
+                                {!p.hotel && <span style={{ backgroundColor: '#16a34a', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 900 }}>Houses: {p.houses || 0}</span>}
                               </>
                             )}
                           </div>
@@ -1584,7 +1673,7 @@ export default function App() {
                     );
                   })
                 ) : (
-                  <div className="text-center text-slate-400 font-bold p-4 border-2 border-dashed border-slate-200 rounded-lg">
+                  <div style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 700, padding: '1rem', border: '2px dashed #e2e8f0', borderRadius: '0.5rem' }}>
                     No properties owned
                   </div>
                 )}
@@ -1598,7 +1687,7 @@ export default function App() {
                   quitPlayer(selectedPlayerForDescription.id);
                 }
               }}
-              className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-black text-base uppercase shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+              style={{ width: '100%', backgroundColor: '#ef4444', color: 'white', padding: '0.75rem', borderRadius: '0.75rem', fontWeight: 900, fontSize: '1rem', textTransform: 'uppercase', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 10px 15px -3px rgb(0 0 0/0.1)' }}
             >
               <LogOut size={20} /> Quit Game
             </button>
@@ -1608,20 +1697,20 @@ export default function App() {
 
       {/* BANK LOAN MODAL */}
       {loanModal && (
-        <div className="fixed inset-0 z-[131] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-[420px] shadow-2xl flex flex-col p-6 animate-in zoom-in-95">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-black uppercase text-slate-900 border-b-4 border-yellow-400 pb-1">Bank Loan</h2>
-              <button onClick={() => setLoanModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500"><X size={22} /></button>
+        <div className="overlay-backdrop" style={{ zIndex: 131 }}>
+          <div className="modal-card" style={{ maxWidth: '420px' }}>
+            <div className="modal-header" style={{ marginBottom: '1rem' }}>
+              <h2 className="modal-title yellow" style={{ fontSize: '1.25rem' }}>Bank Loan</h2>
+              <button onClick={() => setLoanModal(false)} className="modal-close-btn"><X size={22} /></button>
             </div>
 
-            <div className="rounded-2xl bg-slate-100 p-4 mb-4 text-[12px] font-bold text-slate-700 space-y-2">
-              <div className="flex justify-between"><span>Rate of Interest</span><span>{Math.round(LOAN_RATE_PER_TURN * 100)}% / turn</span></div>
-              <div className="flex justify-between"><span>Total Amount (Next Turn)</span><span>Rs.{nextTurnLoanTotal}</span></div>
+            <div className="loan-info-box">
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Rate of Interest</span><span>{Math.round(LOAN_RATE_PER_TURN * 100)}% / turn</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Total Amount (Next Turn)</span><span>Rs.{nextTurnLoanTotal}</span></div>
             </div>
 
-            <div className="mb-3 rounded-xl border border-slate-200 p-3">
-              <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
+            <div className="loan-slider-section">
+              <div className="loan-slider-label">
                 <span>Take Amount</span>
                 <span>Rs.{takeSliderValue} / Rs.{availableLoanAmount}</span>
               </div>
@@ -1632,13 +1721,13 @@ export default function App() {
                 step="1"
                 value={takeSliderValue}
                 onChange={(e) => setLoanDraft(prev => ({ ...prev, takeAmount: e.target.value }))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+                className="loan-range take"
               />
-              <button onClick={takeLoan} disabled={takeSliderValue <= 0} className="mt-3 w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-black disabled:opacity-40 disabled:cursor-not-allowed">Take</button>
+              <button onClick={takeLoan} disabled={takeSliderValue <= 0} style={{ marginTop: '0.75rem', width: '100%', backgroundColor: '#16a34a', color: 'white', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 900, border: 'none', cursor: takeSliderValue > 0 ? 'pointer' : 'not-allowed', opacity: takeSliderValue <= 0 ? 0.4 : 1 }}>Take</button>
             </div>
 
-            <div className="mb-4 rounded-xl border border-slate-200 p-3">
-              <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
+            <div className="loan-slider-section" style={{ marginBottom: '1rem' }}>
+              <div className="loan-slider-label">
                 <span>Pay Amount</span>
                 <span>Rs.{repaySliderValue} / Rs.{maxRepayAmount}</span>
               </div>
@@ -1649,67 +1738,74 @@ export default function App() {
                 step="1"
                 value={repaySliderValue}
                 onChange={(e) => setLoanDraft(prev => ({ ...prev, repayAmount: e.target.value }))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="loan-range repay"
               />
-              <button onClick={repayLoan} disabled={repaySliderValue <= 0} className="mt-3 w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-black disabled:opacity-40 disabled:cursor-not-allowed">Pay</button>
+              <button onClick={repayLoan} disabled={repaySliderValue <= 0} style={{ marginTop: '0.75rem', width: '100%', backgroundColor: '#2563eb', color: 'white', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontSize: '0.875rem', fontWeight: 900, border: 'none', cursor: repaySliderValue > 0 ? 'pointer' : 'not-allowed', opacity: repaySliderValue <= 0 ? 0.4 : 1 }}>Pay</button>
             </div>
 
-            <button onClick={() => setLoanModal(false)} className="w-full bg-slate-900 text-white py-3 rounded-xl font-black uppercase shadow-lg">Done</button>
+            <button onClick={() => setLoanModal(false)} style={{ width: '100%', backgroundColor: '#0f172a', color: 'white', padding: '0.75rem', borderRadius: '0.75rem', fontWeight: 900, textTransform: 'uppercase', border: 'none', cursor: 'pointer', boxShadow: '0 10px 15px -3px rgb(0 0 0/0.1)' }}>Done</button>
           </div>
         </div>
       )}
 
       {/* PROPERTY MANAGE / VIEW MODAL */}
       {selectedTile && (
-        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-md flex items-center justify-center p-2" onClick={() => setSelectedTile(null)}>
-          <div className="bg-white rounded-xl w-full max-w-[240px] shadow-2xl overflow-hidden border-[2px] border-slate-800 flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className={`${getGroupColor(selectedTile.group) || 'bg-slate-200'} p-4 text-center border-b-[3px] border-slate-800`}>
-              <h3 className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-1 ${['YELLOW', 'LIGHT_BLUE', 'PINK'].includes(selectedTile.group) ? 'text-slate-800' : 'text-white'}`}>Title Deed</h3>
-              <h1 className={`text-2xl font-black uppercase tracking-wider ${['YELLOW', 'LIGHT_BLUE', 'PINK'].includes(selectedTile.group) ? 'text-slate-800' : 'text-white'}`}>{selectedTile.name}</h1>
-              <div className="justify-between items-center font- text-sm italic text-white mb-(-2)"><span>₹{selectedTile.price}</span></div>
+        <div className="overlay-backdrop" style={{ zIndex: 110, padding: '0.5rem' }} onClick={() => setSelectedTile(null)}>
+          <div className="deed-modal-card" onClick={e => e.stopPropagation()}>
+            <div className="deed-header" style={{ backgroundColor: getGroupColor(selectedTile.group) || '#e2e8f0' }}>
+              <h3 className={`deed-header-label ${['YELLOW', 'LIGHT_BLUE', 'PINK'].includes(selectedTile.group) ? 'dark' : 'light'}`}>Title Deed</h3>
+              <h1 className={`deed-header-name ${['YELLOW', 'LIGHT_BLUE', 'PINK'].includes(selectedTile.group) ? 'dark' : 'light'}`}>{selectedTile.name}</h1>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem', fontStyle: 'italic', color: 'white' }}>
+                <span>₹{selectedTile.price}</span>
+              </div>
             </div>
-            <div className="p-5 bg-[#fdfdfd] text-slate-800 font-serif">
+            <div className="deed-body">
               {selectedTile.type === 'railway' ? (
-                <div className="space-y-2 py-1 font-bold text-[11px] text-slate-700">
-                  <div className="flex justify-between border-b border-slate-100 pb-1"><span>1 railway rent →</span><span>₹750</span></div>
-                  <div className="flex justify-between border-b border-slate-100 pb-1"><span>2 railways rent →</span><span>₹1000</span></div>
-                  <div className="flex justify-between border-b border-slate-100 pb-1"><span>3 railways rent →</span><span>₹2000</span></div>
-                  <div className="flex justify-between pb-1"><span>4 railways rent →</span><span>₹4000</span></div>
-                  <div className="flex flex-col items-center mt-4 pt-2 border-t border-slate-200">
-                    <span className="text-slate-400 uppercase text-[8px] font-black">Mortgage Value</span>
-                    <span className="text-xs font-black italic">₹{selectedTile.mortgage}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.25rem 0', fontWeight: 700, fontSize: '11px', color: '#334155' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.25rem' }}><span>1 railway rent →</span><span>₹750</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.25rem' }}><span>2 railways rent →</span><span>₹1000</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.25rem' }}><span>3 railways rent →</span><span>₹2000</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.25rem' }}><span>4 railways rent →</span><span>₹4000</span></div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '1rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
+                    <span style={{ color: '#94a3b8', textTransform: 'uppercase', fontSize: '8px', fontWeight: 900 }}>Mortgage Value</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 900, fontStyle: 'italic' }}>₹{selectedTile.mortgage}</span>
                   </div>
                 </div>
               ) : selectedTile.type === 'property' ? (
                 <>
-                  <div className="flex justify-between items-center mb-3 font-black text-sm italic"><span>RENT Site Only</span><span>₹{selectedTile.rent[0]}</span></div>
-                  <div className="space-y-1 text-[11px] font-bold text-slate-600">
-                    <div className="flex justify-between"><span>With 1 House</span><span>₹{selectedTile.rent[1]}</span></div>
-                    <div className="flex justify-between"><span>With 2 Houses</span><span>₹{selectedTile.rent[2]}</span></div>
-                    <div className="flex justify-between"><span>With 3 Houses</span><span>₹{selectedTile.rent[3]}</span></div>
-                    <div className="flex justify-between"><span>With 4 Houses</span><span>₹{selectedTile.rent[4]}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', fontWeight: 900, fontSize: '0.875rem', fontStyle: 'italic' }}><span>RENT Site Only</span><span>₹{selectedTile.rent[0]}</span></div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '11px', fontWeight: 700, color: '#475569' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>With 1 House</span><span>₹{selectedTile.rent[1]}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>With 2 Houses</span><span>₹{selectedTile.rent[2]}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>With 3 Houses</span><span>₹{selectedTile.rent[3]}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>With 4 Houses</span><span>₹{selectedTile.rent[4]}</span></div>
                   </div>
-                  <div className="flex justify-between items-center my-3 font-black text-sm italic border-t border-slate-200 pt-2"><span>With HOTEL</span><span>₹{selectedTile.rent[5]}</span></div>
-                  <div className="grid grid-cols-2 gap-4 text-[10px] font-bold border-t border-slate-200 pt-3">
-                    <div className="flex flex-col items-center text-center"><span className="text-slate-400 uppercase text-[8px]">Mortgage</span><span className="text-xs">₹{selectedTile.mortgage}</span></div>
-                    <div className="flex flex-col items-center text-center"><span className="text-slate-400 uppercase text-[8px]">House cost</span><span className="text-xs">₹{selectedTile.houseCost}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0.75rem 0', fontWeight: 900, fontSize: '0.875rem', fontStyle: 'italic', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}><span>With HOTEL</span><span>₹{selectedTile.rent[5]}</span></div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', fontSize: '10px', fontWeight: 700, borderTop: '1px solid #e2e8f0', paddingTop: '0.75rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}><span style={{ color: '#94a3b8', textTransform: 'uppercase', fontSize: '8px' }}>Mortgage</span><span style={{ fontSize: '0.75rem' }}>₹{selectedTile.mortgage}</span></div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}><span style={{ color: '#94a3b8', textTransform: 'uppercase', fontSize: '8px' }}>House cost</span><span style={{ fontSize: '0.75rem' }}>₹{selectedTile.houseCost}</span></div>
                   </div>
                 </>
               ) : (
-                <div className="text-center font-black py-8 text-2xl">₹{selectedTile.price || selectedTile.amount || '0'}</div>
+                <div style={{ textAlign: 'center', fontWeight: 900, padding: '2rem 0', fontSize: '1.5rem' }}>₹{selectedTile.price || selectedTile.amount || '0'}</div>
               )}
             </div>
             {properties[selectedTile.id]?.ownerId === activePlayer.id && phase === 'MANAGE' ? (
-              <div className="bg-slate-100 p-4 space-y-3 border-t-2 border-slate-300">
-                <p className="text-[10px] text-center font-black text-slate-500 uppercase tracking-widest">Manage Property</p>
-                <div className="flex gap-3">
-                  <button onClick={() => { buildHouse(selectedTile.id); setSelectedTile(null); }} className="flex-1 bg-green-500 text-white text-xs font-black py-3 rounded-xl shadow flex justify-center items-center gap-1.5"><Home size={14} /> Build</button>
-                  <button onClick={() => { toggleMortgage(selectedTile.id); setSelectedTile(null); }} className="flex-1 bg-orange-500 text-white text-xs font-black py-3 rounded-xl shadow flex justify-center items-center gap-1.5"><RefreshCw size={14} /> Mortgage</button>
+              <div className="deed-footer-manage">
+                <p style={{ fontSize: '10px', textAlign: 'center', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Manage Property</p>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button onClick={() => { buildHouse(selectedTile.id); setSelectedTile(null); }} style={{ flex: 1, backgroundColor: '#22c55e', color: 'white', fontSize: '0.75rem', fontWeight: 900, padding: '0.75rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', boxShadow: '0 1px 2px 0 rgb(0 0 0/0.05)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.375rem' }}><Home size={14} /> Build</button>
+                  <button onClick={() => { toggleMortgage(selectedTile.id); setSelectedTile(null); }} style={{ flex: 1, backgroundColor: '#f97316', color: 'white', fontSize: '0.75rem', fontWeight: 900, padding: '0.75rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', boxShadow: '0 1px 2px 0 rgb(0 0 0/0.05)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.375rem' }}><RefreshCw size={14} /> Mortgage</button>
                 </div>
               </div>
             ) : (
-              <div className="bg-slate-50 p-3 text-center border-t-2 border-slate-200">
-                <button onClick={() => setSelectedTile(null)} className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-blue-500">Close Deed</button>
+              <div className="deed-footer-view">
+                <button
+                  onClick={() => setSelectedTile(null)}
+                  style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}
+                  onMouseOver={e => e.target.style.color = '#3b82f6'}
+                  onMouseOut={e => e.target.style.color = '#94a3b8'}
+                >Close Deed</button>
               </div>
             )}
           </div>
