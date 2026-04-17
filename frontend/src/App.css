@@ -279,14 +279,14 @@
 .bg-black\/60          { background-color: rgba(0,0,0,0.6); }
 .bg-\[\#ceebd7\]       { background-color: #ceebd7; }
 .bg-\[\#fdfdfd\]       { background-color: #fdfdfd; }
-.bg-\[#8B4513\]        { background-color: #8B4513; }
-.bg-\[#87CEEB\]        { background-color: #87CEEB; }
-.bg-\[#FF69B4\]        { background-color: #FF69B4; }
-.bg-\[#FFA500\]        { background-color: #FFA500; }
-.bg-\[#FF0000\]        { background-color: #FF0000; }
-.bg-\[#FFD700\]        { background-color: #FFD700; }
-.bg-\[#008000\]        { background-color: #008000; }
-.bg-\[#00008B\]        { background-color: #00008B; }
+.bg-\[\#8B4513\]        { background-color: #8B4513; }
+.bg-\[\#87CEEB\]        { background-color: #87CEEB; }
+.bg-\[\#FF69B4\]        { background-color: #FF69B4; }
+.bg-\[\#FFA500\]        { background-color: #FFA500; }
+.bg-\[\#FF0000\]        { background-color: #FF0000; }
+.bg-\[\#FFD700\]        { background-color: #FFD700; }
+.bg-\[\#008000\]        { background-color: #008000; }
+.bg-\[\#00008B\]        { background-color: #00008B; }
 
 /* group-color bg combos used in the manage modal */
 .bg-red-500 { background-color: #ef4444; }
