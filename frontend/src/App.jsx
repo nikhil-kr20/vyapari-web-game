@@ -305,6 +305,8 @@ export default function App() {
   const [loanDraft, setLoanDraft] = useState({ takeAmount: '', repayAmount: '' });
   const [playerDescriptionModal, setPlayerDescriptionModal] = useState(false);
   const [selectedPlayerForDescriptionId, setSelectedPlayerForDescriptionId] = useState(null);
+  const [nameModal, setNameModal] = useState(false);
+  const [customNames, setCustomNames] = useState(['', '', '', '']);
 
   useEffect(() => {
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js');
@@ -1002,6 +1004,27 @@ export default function App() {
                   <button key={n} onClick={() => setPlayerCount(n)} className={`count-btn ${playerCount === n ? 'active' : 'inactive'}`}>{n}</button>
                 ))}
               </div>
+              <button
+                onClick={() => setNameModal(true)}
+                style={{
+                  marginTop: '1rem',
+                  width: '100%',
+                  backgroundColor: '#f1f5f9',
+                  color: '#2563eb',
+                  padding: '0.75rem',
+                  border: '2px dashed #cbd5e1',
+                  borderRadius: '0.75rem',
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <User size={18} /> Add Player Name
+              </button>
             </div>
           </div>
           <button
@@ -1010,7 +1033,7 @@ export default function App() {
               setGameState({
                 players: Array.from({ length: playerCount }).map((_, i) => ({
                   id: i + 1,
-                  name: gameMode === 'bot' && i > 0 ? `Bot ${i + 1}` : `Player ${i + 1}`,
+                  name: customNames[i] || (gameMode === 'bot' && i > 0 ? `Bot ${i + 1}` : `Player ${i + 1}`),
                   color: colors[i],
                   money: startingMoney,
                   position: 0,
@@ -1038,6 +1061,98 @@ export default function App() {
             <Play size={24} /> START GAME
           </button>
         </div>
+
+        {nameModal && (
+          <div className="overlay-backdrop" style={{ zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="modal-card animate-in" style={{ maxWidth: '420px', width: '90%', padding: '2rem' }}>
+              <div className="modal-header" style={{ marginBottom: '1.5rem' }}>
+                <h2 className="modal-title blue" style={{ fontSize: '1.5rem' }}>Players Names</h2>
+                <button onClick={() => setNameModal(false)} className="modal-close-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2rem' }}>
+                {Array.from({ length: playerCount }).map((_, i) => {
+                  const colors = ['bg-red-500', 'bg-blue-500', 'bg-yellow-500', 'bg-green-500'];
+                  const colorHex = {
+                    'bg-red-500': '#ef4444',
+                    'bg-blue-500': '#3b82f6',
+                    'bg-yellow-500': '#eab308',
+                    'bg-green-500': '#22c55e'
+                  };
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '12px',
+                        backgroundColor: colorHex[colors[i]],
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: `0 4px 12px ${colorHex[colors[i]]}44`,
+                        flexShrink: 0
+                      }}>
+                        <PawnIcon colorClass={colors[i]} size="w-7 h-7" />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="text"
+                          placeholder={gameMode === 'bot' && i > 0 ? `Bot ${i} Name` : `Player ${i + 1} Name`}
+                          value={customNames[i]}
+                          onChange={(e) => {
+                            const updated = [...customNames];
+                            updated[i] = e.target.value;
+                            setCustomNames(updated);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem 0',
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            fontSize: '1.125rem',
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            outline: 'none',
+                            borderBottom: '2px solid #e2e8f0',
+                            transition: 'border-color 0.2s'
+                          }}
+                          onFocus={(e) => e.target.style.borderBottomColor = '#3b82f6'}
+                          onBlur={(e) => e.target.style.borderBottomColor = '#e2e8f0'}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setNameModal(false)}
+                style={{
+                  width: '100%',
+                  backgroundColor: '#2563eb',
+                  color: 'white',
+                  padding: '1rem',
+                  borderRadius: '1rem',
+                  fontWeight: 900,
+                  fontSize: '1rem',
+                  letterSpacing: '0.05em',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.75rem',
+                  boxShadow: '0 10px 15px -3px rgba(37,99,235,0.3)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Check size={20} /> CONFIRM NAMES
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
