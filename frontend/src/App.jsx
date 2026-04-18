@@ -154,7 +154,7 @@ const getPawnStackStyle = (index, total) => {
 };
 
 // --- PURE UI COMPONENTS ---
-const PawnIcon = ({ colorClass, size = "w-4 h-4", id }) => {
+const PawnIcon = ({ colorClass, size = "w-4 h-4", id, isMoving }) => {
   const colorMap = {
     'bg-red-500': '#ef4444',
     'bg-blue-500': '#3b82f6',
@@ -180,6 +180,10 @@ const PawnIcon = ({ colorClass, size = "w-4 h-4", id }) => {
         height: pixelSize,
         filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))',
         flexShrink: 0,
+        transform: isMoving ? 'scale(1.75)' : 'scale(1)',
+        transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        zIndex: isMoving ? 10 : 1,
+        position: 'relative'
       }}
     >
       <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5.7.5 1.2 1.2 1.5 2h.5a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-1.2l-1.3 6h2.5a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h2.5l-1.3-6H6a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h.5c.3-.8.8-1.5 1.5-2-1.2-.7-2-2-2-3.5a4 4 0 0 1 4-4z" />
@@ -464,7 +468,7 @@ export default function App() {
       up[idx].loan = { ...currentLoan, principal: nextPrincipal, ratePerTurn: LOAN_RATE_PER_TURN, turnsAccrued: (currentLoan.turnsAccrued || 0) + 1 };
       return up;
     });
-    showTransfer({ name: player.name, color: player.color }, 'BANK', interestAdded, 'Loan Interest');
+    showTransfer({ name: playerRecord.name, color: playerRecord.color }, 'BANK', interestAdded, 'Loan Interest');
   };
 
   const takeLoan = () => {
@@ -520,6 +524,7 @@ export default function App() {
 
   const movePlayerStepByStep = async (steps, triggerAction = true) => {
     setPhase('MOVE');
+    setPlayers(prev => prev.map(p => p.id === activePlayer.id ? { ...p, isMoving: true } : p));
     await new Promise(r => setTimeout(r, 500));
     let currentSteps = 0;
     let passedGo = false;
@@ -543,6 +548,7 @@ export default function App() {
       });
     };
     while (currentSteps < steps) { await moveOneStep(); currentSteps++; }
+    setPlayers(prev => prev.map(p => p.id === activePlayer.id ? { ...p, isMoving: false } : p));
     if (triggerAction) {
       setTimeout(() => { const upPlayer = players.find(p => p.id === activePlayer.id); if (upPlayer) handleLanding(upPlayer.position); }, 500);
     }
@@ -1350,7 +1356,7 @@ export default function App() {
                 <div className="pawn-grid">
                   {occupants.map(p => (
                     <div key={p.id} className="pawn-cell">
-                      <PawnIcon id={`pawn-${p.id}`} colorClass={p.color} size="w-4 h-4" />
+                      <PawnIcon id={`pawn-${p.id}`} colorClass={p.color} size="w-4 h-4" isMoving={p.isMoving} />
                     </div>
                   ))}
                 </div>
