@@ -7,6 +7,11 @@ import {
   RefreshCw, LogOut, ShoppingCart, Repeat, Save, CreditCard, Minus, Plus
 } from 'lucide-react';
 
+import cashSfx from './assets/cash sound.mp3';
+import diceSfx from './assets/dice roll sound.mp3';
+import stepSfx from './assets/token steps sound.mp3';
+import buildSfx from './assets/bought and build.mp3';
+
 // --- INJECT ANIMATION LIBRARIES ---
 const loadScript = (url) => {
   return new Promise((resolve) => {
@@ -186,7 +191,7 @@ const PawnIcon = ({ colorClass, size = "w-4 h-4", id, isMoving }) => {
         position: 'relative'
       }}
     >
-      <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5.7.5 1.2 1.2 1.5 2h.5a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-1.2l-1.3 6h2.5a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h2.5l-1.3-6H6a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h.5c.3-.8.8-1.5 1.5-2-1.2-.7-2-2-2-3.5a4 4 0 0 1 4-4z" />
+      <path d="M12 2a4 4 0 0 1 4 4c0 1.5 -0.8 2.8 -2 3.5 0.7 0.5 1.2 1.2 1.5 2h0.5a1 1 0 0 1 1 1v1a1 1 0 0 1 -1 1h-1.2l-1.3 6h2.5a1 1 0 0 1 1 1v1a1 1 0 0 1 -1 1H6a1 1 0 0 1 -1 -1v-1a1 1 0 0 1 1 -1h2.5l-1.3 -6H6a1 1 0 0 1 -1 -1v-1a1 1 0 0 1 1 -1h0.5c0.3 -0.8 0.8 -1.5 1.5 -2 -1.2 -0.7 -2 -2 -2 -3.5a4 4 0 0 1 4 -4z" />
     </svg>
   );
 };
@@ -312,6 +317,18 @@ export default function App() {
   const [nameModal, setNameModal] = useState(false);
   const [customNames, setCustomNames] = useState(['', '', '', '']);
 
+  const audioCache = useRef({});
+  const playSfx = (src) => {
+    if (!audioCache.current[src]) {
+      const audio = new Audio(src);
+      audio.volume = 0.6;
+      audioCache.current[src] = audio;
+    }
+    const audio = audioCache.current[src];
+    audio.currentTime = 0;
+    audio.play().catch(e => {});
+  };
+
   useEffect(() => {
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js');
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js');
@@ -335,6 +352,7 @@ export default function App() {
   // from/to: { name, color } | 'BANK'
   const showTransfer = (from, to, amount, description = '') => {
     setTransferModal({ from, to, amount, description, id: Date.now() });
+    if (to !== 'BANK') playSfx(cashSfx);
     setTimeout(() => setTransferModal(null), 2000);
   };
 
@@ -544,13 +562,15 @@ export default function App() {
           }
           return up;
         });
+        playSfx(stepSfx);
         setTimeout(resolve, 300);
       });
     };
     while (currentSteps < steps) { await moveOneStep(); currentSteps++; }
     setPlayers(prev => prev.map(p => p.id === activePlayer.id ? { ...p, isMoving: false } : p));
     if (triggerAction) {
-      setTimeout(() => { const upPlayer = players.find(p => p.id === activePlayer.id); if (upPlayer) handleLanding(upPlayer.position); }, 500);
+      const finalPos = (activePlayer.position + steps) % 40;
+      setTimeout(() => handleLanding(finalPos), 500);
     }
   };
 
@@ -591,6 +611,7 @@ export default function App() {
     if (bankruptcyModal && activePlayer?.money < 0) return addLog("Resolve negative balance!", activePlayer.id);
     if (isRolling || phase !== 'ROLL') return;
     releaseExpiredMortgagesOnRoll(activePlayer.id);
+    playSfx(diceSfx);
     setIsRolling(true);
     setTimeout(() => {
       accrueLoanInterestForRoll(activePlayer.id);
@@ -631,7 +652,7 @@ export default function App() {
       if (!ownership) setPhase('ACTION_BUY');
       else if (ownership.ownerId !== activePlayer.id) {
         if (ownership.mortgaged) { addLog(`Property mortgaged.`, activePlayer.id); setPhase('MANAGE'); }
-        else { payRentAction(); }
+        else { payRentAction(posId); }
       }
       else setPhase('MANAGE');
     }
@@ -660,6 +681,7 @@ export default function App() {
       setPlayers(prev => { const upP = [...prev]; const idx = upP.findIndex(p => p.id === activePlayer.id); if (idx > -1) upP[idx].money -= tile.price; return upP; });
       setProperties(prev => ({ ...prev, [tile.id]: { ownerId: activePlayer.id, houses: 0, hotel: false, mortgaged: false, mortgageTurns: 0 } }));
       showTransfer({ name: activePlayer.name, color: activePlayer.color }, 'BANK', tile.price, `Bought ${tile.name}`);
+      playSfx(buildSfx);
       setPhase('MANAGE');
     } else { addLog(`No funds!`, activePlayer.id); setPhase('MANAGE'); }
   };
@@ -676,6 +698,7 @@ export default function App() {
       setPlayers(prev => { const up = [...prev]; const idx = up.findIndex(p => p.id === winnerId); if (idx > -1) up[idx].money -= amount; return up; });
       setProperties(prev => ({ ...prev, [state.propertyId]: { ownerId: winnerId, houses: 0, hotel: false, mortgaged: false, mortgageTurns: 0 } }));
       showTransfer({ name: winnerObj.name, color: winnerObj.color }, 'BANK', amount, `Auction Win: ${BOARD_DATA[state.propertyId].name}`);
+      playSfx(buildSfx);
     } else addLog("Auction failed.");
     setPhase('MANAGE');
     setAuctionState(null);
@@ -704,9 +727,11 @@ export default function App() {
     else { const nextIndex = auctionState.currentBidderIndex % newBidders.length; setAuctionState(prev => ({ ...prev, bidders: newBidders, currentBidderIndex: nextIndex })); }
   };
 
-  const payRentAction = () => {
-    const tile = BOARD_DATA[activePlayer.position];
-    const ownership = properties[tile.id];
+  const payRentAction = (targetPosId = null) => {
+    const posId = (targetPosId !== null) ? targetPosId : activePlayer.position;
+    const tile = BOARD_DATA[posId];
+    const ownership = properties[posId];
+    if (!ownership) return setPhase('MANAGE');
     const ownerIdx = players.findIndex(p => p.id === ownership.ownerId);
     const owner = players[ownerIdx];
     if (!owner) return setPhase('MANAGE');
@@ -831,10 +856,12 @@ export default function App() {
         setProperties(prev => ({ ...prev, [propId]: { ...prop, houses: prop.houses + 1 } }));
         setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money -= tile.houseCost; return up; });
         showTransfer({ name: activePlayer.name, color: activePlayer.color }, 'BANK', tile.houseCost, `Built House (${tile.name})`);
+        playSfx(buildSfx);
       } else if (prop.houses === 4 && !prop.hotel) {
         setProperties(prev => ({ ...prev, [propId]: { ...prop, houses: 0, hotel: true } }));
         setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money -= tile.houseCost; return up; });
         showTransfer({ name: activePlayer.name, color: activePlayer.color }, 'BANK', tile.houseCost, `Built HOTEL (${tile.name})`);
+        playSfx(buildSfx);
       }
     } else addLog("No funds!", activePlayer.id);
   };
