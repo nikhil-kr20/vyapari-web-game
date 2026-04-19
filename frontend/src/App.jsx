@@ -535,9 +535,17 @@ export default function App() {
 
   const checkBankruptcy = (playerId, newMoney, creditorId = null) => {
     if (newMoney < 0) {
-      setBankruptcyPlayerId(playerId);
-      setBankruptcyCreditorId(creditorId);
-      setBankruptcyModal(true);
+      // We no longer trigger the modal immediately.
+      // We record the creditor ID in case they declare bankruptcy later.
+      // But we let them finish the turn.
+      setPlayers(prev => {
+        const up = [...prev];
+        const idx = up.findIndex(p => p.id === playerId);
+        if (idx > -1) {
+            up[idx].creditorId = creditorId;
+        }
+        return up;
+      });
       return true;
     }
     return false;
@@ -602,13 +610,18 @@ export default function App() {
     }
   };
 
-  const checkAndCloseBankruptcyModal = () => {
+  useEffect(() => {
     if (bankruptcyModal && activePlayer?.money >= 0) {
       setBankruptcyModal(false);
       setBankruptcyPlayerId(null);
       addLog(`Balance recovered!`, activePlayer.id);
+
+      // If they recovered and haven't rolled yet, let them roll.
+      // If they recovered during MANAGE, they can end turn.
     }
-  };
+  }, [bankruptcyModal, activePlayer?.money, activePlayer?.id, addLog]);
+
+  const checkAndCloseBankruptcyModal = () => {};
 
   const rollDice = () => {
     if (bankruptcyModal && activePlayer?.money < 0) return addLog("Resolve negative balance!", activePlayer.id);
@@ -770,7 +783,8 @@ export default function App() {
       amount,
       `Rent — ${tile.name}`
     );
-    if (!checkBankruptcy(activePlayer.id, activePlayer.money - amount)) setPhase('MANAGE');
+    checkBankruptcy(activePlayer.id, activePlayer.money - amount, owner.id);
+    setPhase('MANAGE');
   };
 
   const payBank = (amt, reason = '') => {
