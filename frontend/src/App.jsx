@@ -531,10 +531,21 @@ export default function App() {
     showTransfer({ name: activePlayer.name, color: activePlayer.color }, 'BANK', payment, 'Loan Repayment');
   };
 
-  const checkBankruptcy = (playerId, newMoney) => {
+  const [bankruptcyCreditorId, setBankruptcyCreditorId] = useState(null);
+
+  const checkBankruptcy = (playerId, newMoney, creditorId = null) => {
     if (newMoney < 0) {
-      setBankruptcyPlayerId(playerId);
-      setBankruptcyModal(true);
+      // We no longer trigger the modal immediately.
+      // We record the creditor ID in case they declare bankruptcy later.
+      // But we let them finish the turn.
+      setPlayers(prev => {
+        const up = [...prev];
+        const idx = up.findIndex(p => p.id === playerId);
+        if (idx > -1) {
+            up[idx].creditorId = creditorId;
+        }
+        return up;
+      });
       return true;
     }
     return false;
@@ -599,13 +610,18 @@ export default function App() {
     }
   };
 
-  const checkAndCloseBankruptcyModal = () => {
+  useEffect(() => {
     if (bankruptcyModal && activePlayer?.money >= 0) {
       setBankruptcyModal(false);
       setBankruptcyPlayerId(null);
       addLog(`Balance recovered!`, activePlayer.id);
+
+      // If they recovered and haven't rolled yet, let them roll.
+      // If they recovered during MANAGE, they can end turn.
     }
-  };
+  }, [bankruptcyModal, activePlayer?.money, activePlayer?.id, addLog]);
+
+  const checkAndCloseBankruptcyModal = () => {};
 
   const rollDice = () => {
     if (bankruptcyModal && activePlayer?.money < 0) return addLog("Resolve negative balance!", activePlayer.id);
@@ -621,6 +637,24 @@ export default function App() {
       setGameState(prev => ({ ...prev, dice: [d1, d2] }));
       setIsRolling(false);
       addLog(`Rolled ${d1 + d2}`, activePlayer.id);
+
+      if (!activePlayer.inJail) {
+        if (isDouble) {
+          const newDoublesCount = doublesCount + 1;
+          setDoublesCount(newDoublesCount);
+          if (newDoublesCount >= 3) {
+            addLog("3 Doubles! Go to Jail!", activePlayer.id);
+            setDoublesCount(0);
+            jumpToJail();
+            return;
+          } else {
+            addLog("Rolled a double! Play again.", activePlayer.id);
+          }
+        } else {
+          setDoublesCount(0);
+        }
+      }
+
       if (activePlayer.inJail) {
         if (isDouble) {
           addLog(`Escaped Jail!`, activePlayer.id);
@@ -749,7 +783,8 @@ export default function App() {
       amount,
       `Rent — ${tile.name}`
     );
-    if (!checkBankruptcy(activePlayer.id, activePlayer.money - amount)) setPhase('MANAGE');
+    checkBankruptcy(activePlayer.id, activePlayer.money - amount, owner.id);
+    setPhase('MANAGE');
   };
 
   const payBank = (amt, reason = '') => {
@@ -774,8 +809,12 @@ export default function App() {
   };
 
   const endTurn = () => {
-    setDoublesCount(0);
-    setGameState(prev => ({ ...prev, currentTurn: (prev.currentTurn + 1) % prev.players.length, turnSerial: (prev.turnSerial || 0) + 1, phase: 'ROLL' }));
+    if (doublesCount > 0 && !activePlayer.inJail && doublesCount < 3) {
+      setGameState(prev => ({ ...prev, phase: 'ROLL' }));
+    } else {
+      setDoublesCount(0);
+      setGameState(prev => ({ ...prev, currentTurn: (prev.currentTurn + 1) % prev.players.length, turnSerial: (prev.turnSerial || 0) + 1, phase: 'ROLL' }));
+    }
   };
 
   const executeTrade = () => {
@@ -827,10 +866,13 @@ export default function App() {
     const prop = properties[propId];
     const tile = BOARD_DATA[propId];
     if (prop.hotel) {
+      if (bank.houses < 4) return addLog("Bank has no houses to swap!", activePlayer.id);
+      setBank(prev => ({ ...prev, houses: prev.houses - 4, hotels: prev.hotels + 1 }));
       setProperties(prev => ({ ...prev, [propId]: { ...prop, hotel: false, houses: 4 } }));
       setPlayers(prev => { const up = [...prev]; const pIndex = up.findIndex(p => p.id === activePlayer.id); if (pIndex > -1) up[pIndex].money += tile.houseCost / 2; return up; });
       showTransfer('BANK', { name: activePlayer.name, color: activePlayer.color }, tile.houseCost / 2, `Sold HOTEL (${tile.name})`);
     } else if (prop.houses > 0) {
+      setBank(prev => ({ ...prev, houses: prev.houses + 1 }));
       setProperties(prev => ({ ...prev, [propId]: { ...prop, houses: prop.houses - 1 } }));
       setPlayers(prev => { const up = [...prev]; const pIndex = up.findIndex(p => p.id === activePlayer.id); if (pIndex > -1) up[pIndex].money += tile.houseCost / 2; return up; });
       showTransfer('BANK', { name: activePlayer.name, color: activePlayer.color }, tile.houseCost / 2, `Sold House (${tile.name})`);
@@ -853,11 +895,15 @@ export default function App() {
     if (anyMortgaged) return addLog("Redeem all first!", activePlayer.id);
     if (activePlayer.money >= tile.houseCost) {
       if (prop.houses < 4 && !prop.hotel) {
+        if (bank.houses <= 0) return addLog("Bank has no houses!", activePlayer.id);
+        setBank(prev => ({ ...prev, houses: prev.houses - 1 }));
         setProperties(prev => ({ ...prev, [propId]: { ...prop, houses: prop.houses + 1 } }));
         setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money -= tile.houseCost; return up; });
         showTransfer({ name: activePlayer.name, color: activePlayer.color }, 'BANK', tile.houseCost, `Built House (${tile.name})`);
         playSfx(buildSfx);
       } else if (prop.houses === 4 && !prop.hotel) {
+        if (bank.hotels <= 0) return addLog("Bank has no hotels!", activePlayer.id);
+        setBank(prev => ({ ...prev, houses: prev.houses + 4, hotels: prev.hotels - 1 }));
         setProperties(prev => ({ ...prev, [propId]: { ...prop, houses: 0, hotel: true } }));
         setPlayers(prev => { const up = [...prev]; if (up[turn]) up[turn].money -= tile.houseCost; return up; });
         showTransfer({ name: activePlayer.name, color: activePlayer.color }, 'BANK', tile.houseCost, `Built HOTEL (${tile.name})`);
